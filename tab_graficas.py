@@ -189,7 +189,7 @@ class TabGraficas(QWidget):
                              f"Q = {d['Q_op']:,.0f} gpm", loc="right")
             ax.set_xlabel("Distancia desde el standpipe, longitud U-Tube (ft)")
             Lb = sum(t.longitud for t in d["res"].tramos_int)
-            ax.axvline(Lb, color=VERDE, ls=":", lw=0.9)
+            ax.axvline(Lb, color=VERDE, ls="-", lw=0.9)
             ax.annotate("Broca", xy=(Lb, ax.get_ylim()[1]),
                         xytext=(4, -10), textcoords="offset points",
                         fontsize=8, color=VERDE, va="top")
