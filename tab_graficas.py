@@ -1,17 +1,33 @@
-"""Pestana 3 - Graficas (replica las figuras 1 a 6 del paper)."""
+"""Pestana 3 - Graficas (figuras 1 a 6 del paper + distribucion de perdidas)."""
 import matplotlib
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavToolbar
 from matplotlib.figure import Figure
+import matplotlib.ticker as ticker
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QComboBox,
-                             QLabel, QFileDialog)
-from PyQt6.QtCore import Qt
+                             QFileDialog)
 
-from estilo import (GRAY_RES, GRAY_LBL, BORDER, TEXT, TEXT_RES, FONT_F, FS,
-                    QSS_COMBO, etiqueta, boton, seccion)
+from estilo import (GRAY_RES, GRAY_LBL, BORDER, TEXT_DIM, FONT_F,
+                    QSS_COMBO, etiqueta, boton)
 from engine_hidraulica import calcular, barrido_caudal, perfil_utube
+
+# ── Tipografia y colores identicos a ThermoPhase ───────────────────────
+matplotlib.rcParams['font.family'] = ['Arial Narrow', 'Arial', 'sans-serif']
+
+ROJO  = "#a83218"   # escenario / serie secundaria
+AZUL  = "#1a4fa8"   # escenario / serie principal
+VERDE = "#2d9d2d"
+GRIS  = "#888888"
+
+# Barras: tonos mates de la misma paleta
+B_SUP = "#a0a0a0"
+B_INT = "#6b83b0"
+B_BIT = "#b07a6b"
+B_ANN = "#7fa07f"
+
+LW    = 1.0   # lineas finas
+MS    = 3.5   # marcadores pequenos
 
 GRAFICAS = [
     "1. Presion de bomba vs Caudal",
@@ -20,17 +36,15 @@ GRAFICAS = [
     "4. Presion hidrostatica y total vs Longitud U-Tube",
     "5. Caida de presion anular vs Caudal",
     "6. ECD vs Caudal",
-    "7. Distribucion de perdidas (barras)",
+    "7. Distribucion de las perdidas de presion",
 ]
-
-C1, C2 = "#000080", "#8B0000"   # escenario A / escenario B
 
 
 class TabGraficas(QWidget):
     def __init__(self):
         super().__init__()
         self.setStyleSheet(f'background:{GRAY_RES};')
-        self.datos = None       # dict con escenarios
+        self.datos = None
         self._build()
 
     def _build(self):
@@ -52,159 +66,181 @@ class TabGraficas(QWidget):
         barra.addWidget(self.btn_png)
         root.addLayout(barra)
 
-        self.fig = Figure(figsize=(9, 6), dpi=100, facecolor="#FFFFFF")
+        self.fig = Figure(figsize=(9, 6), dpi=100, facecolor=GRAY_RES)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setStyleSheet(f'border:1px solid {BORDER};')
         root.addWidget(self.canvas, 1)
 
-        self.tb = NavToolbar(self.canvas, self)
-        self.tb.setStyleSheet(f'background:{GRAY_LBL};border:1px solid {BORDER};')
-        root.addWidget(self.tb)
+        self._dibujar()
 
     # ──────────────────────────────────────────────────────────────
     def actualizar(self, pozo, Q_op, d_broca, caudales, pozo_alt=None,
                    etq="Escenario", etq_alt=None):
-        """pozo_alt: escenario de comparacion opcional (p.ej. con washout)."""
         self.datos = dict(
             pozo=pozo, Q_op=Q_op, d_broca=d_broca, caudales=caudales,
-            barrido=barrido_caudal(pozo, caudales, d_broca),
+            barrido=barrido_caudal(pozo, caudales, d_broca) if caudales else [],
             res=calcular(pozo, Q_op, d_broca),
             etq=etq, etq_alt=etq_alt)
-        if pozo_alt is not None:
+        if pozo_alt is not None and caudales:
             self.datos["barrido_alt"] = barrido_caudal(pozo_alt, caudales, d_broca)
+            self.datos["pozo_alt"] = pozo_alt
             self.datos["res_alt"] = calcular(pozo_alt, Q_op, d_broca)
         self._dibujar()
 
     def _guardar(self):
-        p, _ = QFileDialog.getSaveFileName(self, "Guardar grafica", "grafica.png",
-                                           "PNG (*.png)")
+        p, _ = QFileDialog.getSaveFileName(self, "Guardar grafica",
+                                           "grafica.png", "PNG (*.png)")
         if p:
-            self.fig.savefig(p, dpi=200, bbox_inches="tight")
+            self.fig.savefig(p, dpi=200, bbox_inches="tight",
+                             facecolor=self.fig.get_facecolor())
 
     # ──────────────────────────────────────────────────────────────
+    def _estilo(self, ax):
+        ax.set_facecolor('#FAFAFA')
+        ax.grid(True, linestyle='--', alpha=0.4, color=GRAY_LBL)
+        ax.tick_params(labelsize=8, colors=TEXT_DIM)
+        for s in ax.spines.values():
+            s.set_edgecolor(BORDER)
+        ax.xaxis.label.set_fontsize(9)
+        ax.yaxis.label.set_fontsize(9)
+        ax.xaxis.label.set_color(TEXT_DIM)
+        ax.yaxis.label.set_color(TEXT_DIM)
+        ax.title.set_fontsize(10)
+        ax.title.set_color(TEXT_DIM)
+
     def _dibujar(self):
         self.fig.clear()
+        ax = self.fig.add_subplot(111)
+
         if not self.datos:
-            ax = self.fig.add_subplot(111)
             ax.text(0.5, 0.5, "Sin resultados", ha="center", va="center",
-                    fontsize=13, color="#888888", transform=ax.transAxes)
+                    fontsize=12, color=GRIS, transform=ax.transAxes)
             ax.set_xticks([]); ax.set_yticks([])
+            ax.set_facecolor('#FAFAFA')
+            self.fig.tight_layout()
             self.canvas.draw()
             return
 
         d = self.datos
-        ax = self.fig.add_subplot(111)
-        ax.set_facecolor("#FAFAFA")
-        ax.grid(True, ls=":", lw=0.7, color="#BBBBBB")
+        self._estilo(ax)
 
-        Qs = [r.Q for r in d["barrido"]]
+        bar = d["barrido"]
+        Qs = [r.Q for r in bar]
         alt = "barrido_alt" in d
         Qa = [r.Q for r in d["barrido_alt"]] if alt else None
         i = self.cb.currentIndex()
+        S  = lambda b, k: [getattr(r, k) for r in b]
 
-        def serie(clave):
-            return [getattr(r, clave) for r in d["barrido"]]
-
-        def serie_alt(clave):
-            return [getattr(r, clave) for r in d["barrido_alt"]]
+        if i in (0, 1, 4, 5) and not bar:
+            ax.text(0.5, 0.5, "No hay caudales cargados para el barrido",
+                    ha="center", va="center", fontsize=10, color=GRIS,
+                    transform=ax.transAxes)
+            self.fig.tight_layout(); self.canvas.draw(); return
 
         if i == 0:
-            ax.plot(Qs, serie("P_bomba"), "o-", color=C1, lw=1.8, ms=6,
-                    label=d["etq"])
+            ax.plot(Qs, S(bar, "P_bomba"), marker='^', ms=MS, lw=LW,
+                    color=AZUL, label=d["etq"])
             if alt:
-                ax.plot(Qa, serie_alt("P_bomba"), "s--", color=C2, lw=1.8, ms=6,
-                        label=d["etq_alt"])
-            ax.set_xlabel("Caudal, gpm"); ax.set_ylabel("Presion de bomba, psi")
+                ax.plot(Qa, S(d["barrido_alt"], "P_bomba"), marker='^', ms=MS,
+                        lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
+            ax.set_xlabel("Caudal (gpm)")
+            ax.set_ylabel("Presion de bomba (psi)")
             ax.set_title("Presion de bomba vs Caudal")
 
         elif i == 1:
-            ax.loglog(Qs, serie("dP_parasita"), "o-", color=C1, lw=1.8, ms=6,
-                      label=d["etq"])
+            ax.loglog(Qs, S(bar, "dP_parasita"), marker='^', ms=MS, lw=LW,
+                      color=AZUL, label=d["etq"])
             if alt:
-                ax.loglog(Qa, serie_alt("dP_parasita"), "s--", color=C2, lw=1.8,
-                          ms=6, label=d["etq_alt"])
-            ax.set_xlabel("Caudal, gpm"); ax.set_ylabel("Presion parasita, psi")
-            ax.set_title("Presion parasita vs Caudal (escala log-log)")
-            ax.grid(True, which="both", ls=":", lw=0.7, color="#BBBBBB")
+                ax.loglog(Qa, S(d["barrido_alt"], "dP_parasita"), marker='^',
+                          ms=MS, lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
+            ax.set_xlabel("Caudal (gpm)")
+            ax.set_ylabel("Presion parasita (psi)")
+            ax.set_title("Presion parasita vs Caudal  /  escala log-log")
+            ax.grid(True, which="both", linestyle='--', alpha=0.4, color=GRAY_LBL)
 
         elif i in (2, 3):
             pf = perfil_utube(d["pozo"], d["res"])
             if i == 2:
-                ax.plot(pf["L"], pf["P_dyn"], "-", color=C1, lw=2, label=d["etq"])
+                ax.plot(pf["L"], pf["P_dyn"], lw=LW, color=AZUL, label=d["etq"])
                 if alt:
-                    pfa = perfil_utube(d["pozo"], d["res_alt"]) \
-                        if False else None
-                ax.set_ylabel("Presion circulante (dinamica), psi")
-                ax.set_title(f"Presion circulante vs Longitud U-Tube "
-                             f"(Q = {d['Q_op']:.0f} gpm)")
-                for nm, L, P in pf["etiquetas"]:
-                    ax.annotate(nm, (L, P), textcoords="offset points",
-                                xytext=(6, 8), fontsize=7.5, color="#444444")
+                    pfa = perfil_utube(d["pozo_alt"], d["res_alt"])
+                    ax.plot(pfa["L"], pfa["P_dyn"], lw=LW, ls='--', color=ROJO,
+                            label=d["etq_alt"])
+                ax.set_ylabel("Presion circulante (psi)")
+                ax.set_title(f"Presion circulante vs Longitud U-Tube  /  "
+                             f"Q = {d['Q_op']:,.0f} gpm")
             else:
-                ax.plot(pf["L"], pf["P_hyd"], "-", color="#888888", lw=1.6,
-                        label="P hidrostatica (estatica)")
-                ax.plot(pf["L"], pf["P_tot"], "-", color=C1, lw=2,
-                        label="P hidrostatica + dinamica (circulando)")
-                ax.set_ylabel("Presion, psi")
-                ax.set_title(f"Perfil de presion a lo largo del circuito "
-                             f"(Q = {d['Q_op']:.0f} gpm)")
-            ax.set_xlabel("Distancia recorrida desde el standpipe "
-                          "(longitud U-Tube), ft")
-            # marcar la broca
+                ax.plot(pf["L"], pf["P_hyd"], lw=LW, color=GRIS,
+                        label="Presion hidrostatica")
+                ax.plot(pf["L"], pf["P_tot"], lw=LW, color=AZUL,
+                        label="Hidrostatica + dinamica")
+                if alt:
+                    pfa = perfil_utube(d["pozo_alt"], d["res_alt"])
+                    ax.plot(pfa["L"], pfa["P_tot"], lw=LW, ls='--', color=ROJO,
+                            label=f"Hidrostatica + dinamica ({d['etq_alt']})")
+                ax.set_ylabel("Presion (psi)")
+                ax.set_title(f"Perfil de presion a lo largo del circuito  /  "
+                             f"Q = {d['Q_op']:,.0f} gpm")
+            ax.set_xlabel("Distancia desde el standpipe, longitud U-Tube (ft)")
             Lb = sum(t.longitud for t in d["res"].tramos_int)
-            ax.axvline(Lb, color=C2, ls="--", lw=1, alpha=0.7)
-            ax.text(Lb, ax.get_ylim()[1] * 0.97, " Broca", color=C2,
-                    fontsize=8, va="top")
+            ax.axvline(Lb, color=VERDE, ls=":", lw=0.9)
+            ax.annotate("Broca", xy=(Lb, ax.get_ylim()[1]),
+                        xytext=(4, -10), textcoords="offset points",
+                        fontsize=8, color=VERDE, va="top")
 
         elif i == 4:
-            ax.plot(Qs, serie("dP_ann"), "o-", color=C1, lw=1.8, ms=6,
-                    label=d["etq"])
+            ax.plot(Qs, S(bar, "dP_ann"), marker='^', ms=MS, lw=LW,
+                    color=AZUL, label=d["etq"])
             if alt:
-                ax.plot(Qa, serie_alt("dP_ann"), "s--", color=C2, lw=1.8, ms=6,
-                        label=d["etq_alt"])
-            ax.set_xlabel("Caudal, gpm")
-            ax.set_ylabel("Caida de presion anular total, psi")
+                ax.plot(Qa, S(d["barrido_alt"], "dP_ann"), marker='^', ms=MS,
+                        lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
+            ax.set_xlabel("Caudal (gpm)")
+            ax.set_ylabel("Caida de presion anular total (psi)")
             ax.set_title("Caida de presion anular vs Caudal")
 
         elif i == 5:
-            ax.plot(Qs, serie("ECD"), "o-", color=C1, lw=1.8, ms=6, label=d["etq"])
+            ax.plot(Qs, S(bar, "ECD"), marker='^', ms=MS, lw=LW,
+                    color=AZUL, label=d["etq"])
             if alt:
-                ax.plot(Qa, serie_alt("ECD"), "s--", color=C2, lw=1.8, ms=6,
-                        label=d["etq_alt"])
+                ax.plot(Qa, S(d["barrido_alt"], "ECD"), marker='^', ms=MS,
+                        lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             rho = d["pozo"].fluido.rho
-            ax.axhline(rho, color="#888888", ls=":", lw=1.2)
-            ax.text(Qs[0], rho, f" Densidad estatica = {rho:.2f} ppg",
-                    fontsize=8, va="bottom", color="#555555")
-            ax.set_xlabel("Caudal, gpm")
-            ax.set_ylabel("Densidad equivalente de circulacion, ppg")
+            ax.axhline(rho, color=GRIS, ls=":", lw=0.9)
+            ax.annotate(f"Densidad estatica = {rho:.2f} ppg",
+                        xy=(Qs[0], rho), xytext=(4, 4),
+                        textcoords="offset points", fontsize=8, color=TEXT_DIM)
+            ax.set_xlabel("Caudal (gpm)")
+            ax.set_ylabel("Densidad equivalente de circulacion (ppg)")
             ax.set_title("ECD vs Caudal")
 
         else:
             r = d["res"]
             nombres = ["Superficie"] + [t.nombre for t in r.tramos_int] + \
-                      ["Boquillas"] + [t.nombre for t in r.tramos_ann]
+                      ["Boquillas de la broca"] + [t.nombre for t in r.tramos_ann]
             vals = [r.dp_superficie] + [t.dP for t in r.tramos_int] + \
                    [r.broca.dP] + [t.dP for t in r.tramos_ann]
-            cols = ["#888888"] + ["#000080"] * len(r.tramos_int) + ["#8B0000"] + \
-                   ["#006400"] * len(r.tramos_ann)
-            y = range(len(vals))
-            ax.barh(list(y), vals, color=cols, edgecolor="#333333", height=0.65)
-            ax.set_yticks(list(y))
+            cols = [B_SUP] + [B_INT] * len(r.tramos_int) + [B_BIT] + \
+                   [B_ANN] * len(r.tramos_ann)
+            y = list(range(len(vals)))
+            ax.barh(y, vals, color=cols, edgecolor=BORDER, linewidth=0.5,
+                    height=0.62)
+            ax.set_yticks(y)
             ax.set_yticklabels(nombres, fontsize=8)
             ax.invert_yaxis()
             for k, v in enumerate(vals):
-                ax.text(v, k, f"  {v:,.1f} psi  ({v/r.P_bomba*100:.1f}%)",
-                        va="center", fontsize=8, color="#333333")
-            ax.set_xlabel("Caida de presion, psi")
-            ax.set_title(f"Distribucion de las perdidas de presion "
-                         f"(Q = {d['Q_op']:.0f} gpm  |  "
-                         f"P bomba = {r.P_bomba:,.0f} psi)")
+                ax.annotate(f"{v:,.1f} psi  ({v/r.P_bomba*100:.1f} %)",
+                            xy=(v, k), xytext=(5, 0),
+                            textcoords="offset points", va="center",
+                            fontsize=8, color=TEXT_DIM)
+            ax.set_xlabel("Caida de presion (psi)")
+            ax.set_title(f"Distribucion de las perdidas de presion  /  "
+                         f"Q = {d['Q_op']:,.0f} gpm  /  "
+                         f"P bomba = {r.P_bomba:,.0f} psi")
             ax.set_xlim(0, max(vals) * 1.45)
-            ax.grid(True, axis="x", ls=":", lw=0.7, color="#BBBBBB")
+            ax.grid(True, axis="x", linestyle='--', alpha=0.4, color=GRAY_LBL)
+            ax.grid(False, axis="y")
 
         if i != 6:
-            ax.legend(fontsize=8.5, framealpha=0.95)
-        for s in ax.spines.values():
-            s.set_color("#666666")
+            ax.legend(fontsize=8, framealpha=0.9)
         self.fig.tight_layout()
         self.canvas.draw()

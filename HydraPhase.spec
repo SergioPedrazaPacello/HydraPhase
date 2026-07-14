@@ -30,8 +30,6 @@ a = Analysis(
         # Backend Qt de matplotlib (no lo detecta el analizador estatico)
         "matplotlib.backends.backend_qtagg",
         "matplotlib.backends.backend_agg",
-        # Proyeccion 3D del esquema del pozo
-        "mpl_toolkits.mplot3d",
         # Modulos propios cargados por nombre
         "engine_hidraulica",
         "estilo",
@@ -39,7 +37,6 @@ a = Analysis(
         "tab_datos",
         "tab_resultados",
         "tab_graficas",
-        "tab_esquema",
     ],
     hookspath=[],
     hooksconfig={},

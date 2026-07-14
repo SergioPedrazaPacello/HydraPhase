@@ -1,6 +1,5 @@
 """
 HydraPhase - Simulador de Hidraulica de Perforacion
-====================================================
 Modelo reologico: Ley de Potencia (Power Law)
 
 Ejecutar:  python app_hidra.py
@@ -11,19 +10,16 @@ import matplotlib
 matplotlib.use('QtAgg')
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QTabWidget, QStatusBar, QLabel, QCheckBox,
-                             QHBoxLayout)
-from PyQt6.QtCore import Qt
+                             QHBoxLayout, QTabWidget, QStatusBar, QLabel,
+                             QCheckBox)
 from PyQt6.QtGui import QFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from estilo import (WHITE, GRAY_LBL, GRAY_RES, BORDER, TEXT, TEXT_RES,
-                    FONT_F, FS)
+from estilo import WHITE, GRAY_LBL, BORDER, TEXT, FONT_F, FS
 from tab_datos import TabDatos
 from tab_resultados import TabResultados
 from tab_graficas import TabGraficas
-from tab_esquema import TabEsquema
 import dialogos as dlg
 
 VERSION = "1.0"
@@ -32,8 +28,7 @@ VERSION = "1.0"
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"HydraPhase {VERSION}  -  "
-                            f"Hidraulica de Perforacion")
+        self.setWindowTitle(f"HydraPhase {VERSION}  /  Hidraulica de Perforacion")
         self.resize(1280, 860)
         self.setMinimumSize(1120, 760)
         self._build()
@@ -45,10 +40,10 @@ class MainWindow(QMainWindow):
         lay.setContentsMargins(4, 4, 4, 2)
         lay.setSpacing(3)
 
-        # ── Barra de escenario ────────────────────────────────────
         barra = QHBoxLayout()
         self.ck_comp = QCheckBox(
-            "Comparar escenario con washout (segundo escenario en las graficas)")
+            "Comparar con el mismo pozo sin washout  "
+            "(agrega un segundo escenario a las graficas)")
         self.ck_comp.setStyleSheet(
             f'font-family:"{FONT_F}";font-size:{FS}pt;color:{TEXT};')
         self.ck_comp.setChecked(True)
@@ -56,7 +51,6 @@ class MainWindow(QMainWindow):
         barra.addStretch()
         lay.addLayout(barra)
 
-        # ── Pestanas ──────────────────────────────────────────────
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet(
             f'QTabWidget::pane{{border:1px solid {BORDER};}}'
@@ -69,30 +63,23 @@ class MainWindow(QMainWindow):
         self.tab_dat = TabDatos()
         self.tab_res = TabResultados()
         self.tab_gra = TabGraficas()
-        self.tab_esq = TabEsquema()
 
         self.tabs.addTab(self.tab_dat, "Datos de entrada")
         self.tabs.addTab(self.tab_res, "Resultados")
         self.tabs.addTab(self.tab_gra, "Graficas")
-        self.tabs.addTab(self.tab_esq, "Esquema del pozo")
         lay.addWidget(self.tabs)
 
         self.tab_dat.datos_cambiados.connect(self.calcular)
 
-        # ── Barra de estado ───────────────────────────────────────
         sb = QStatusBar()
-        sb.setStyleSheet(f'background:{GRAY_LBL};font-family:"{FONT_F}";'
-                         f'font-size:9pt;border-top:1px solid {BORDER};')
-        self.lbl_sb = QLabel("  Modelo: Ley de Potencia (Power Law)   |   "
-                             "Unidades de campo (psi, ft, in, gpm, ppg)   |   "
-                             "Listo")
+        sb.setStyleSheet(f'background:{GRAY_LBL};border-top:1px solid {BORDER};')
+        self.lbl_sb = QLabel("  Modelo: Ley de Potencia  /  "
+                             "Unidades de campo: psi, ft, in, gpm, ppg  /  "
+                             "Sin datos cargados")
         self.lbl_sb.setStyleSheet(f'font-family:"{FONT_F}";font-size:9pt;'
                                   f'background:transparent;')
         sb.addPermanentWidget(self.lbl_sb, 1)
         self.setStatusBar(sb)
-
-        # Primer calculo automatico con el caso de referencia
-        self.calcular()
 
     # ──────────────────────────────────────────────────────────────
     def calcular(self):
@@ -110,32 +97,27 @@ class MainWindow(QMainWindow):
             Qs   = self.tab_dat.get_caudales()
 
             self.tab_res.actualizar(pozo, Q_op, dbr, Qs)
-            self.tab_esq.actualizar(pozo)
 
-            # Escenario de comparacion
             pozo_alt, etq_alt = None, None
-            if self.ck_comp.isChecked():
-                tiene_w = any(h.tipo == "washout" for h in pozo.hoyo)
-                if tiene_w:
-                    pozo_alt = self._sin_washout(pozo)
-                    etq, etq_alt = "Con washout", "Sin washout"
-                else:
-                    etq = "Sin washout"
+            tiene_w = any(h.tipo == "washout" for h in pozo.hoyo)
+            if self.ck_comp.isChecked() and tiene_w:
+                pozo_alt = self._sin_washout(pozo)
+                etq, etq_alt = "Con washout", "Sin washout"
             else:
-                etq = "Escenario actual"
+                etq = "Con washout" if tiene_w else "Sin washout"
 
             self.tab_gra.actualizar(pozo, Q_op, dbr, Qs,
                                     pozo_alt=pozo_alt, etq=etq, etq_alt=etq_alt)
 
             r = self.tab_res.res
             self.lbl_sb.setText(
-                f"  Ley de Potencia   |   Q = {Q_op:,.0f} gpm   |   "
-                f"P bomba = {r.P_bomba:,.1f} psi   |   "
-                f"\u0394P broca = {r.broca.dP:,.1f} psi "
-                f"({r.broca.pct_dP:.1f} %)   |   "
-                f"ECD = {r.ECD:.3f} ppg   |   HSI = {r.broca.HSI:.2f}")
+                f"  Ley de Potencia  /  Q = {Q_op:,.0f} gpm  /  "
+                f"P bomba = {r.P_bomba:,.1f} psi  /  "
+                f"\u0394P broca = {r.broca.dP:,.1f} psi ({r.broca.pct_dP:.1f} %)"
+                f"  /  ECD = {r.ECD:.3f} ppg  /  HSI = {r.broca.HSI:.2f}")
         except Exception as e:
-            dlg.error(self, f"Error durante el calculo:\n\n{type(e).__name__}: {e}")
+            dlg.error(self, f"Error durante el calculo:\n\n"
+                            f"{type(e).__name__}: {e}")
             self.lbl_sb.setText("  Error durante el calculo")
 
     @staticmethod

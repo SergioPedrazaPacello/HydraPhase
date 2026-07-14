@@ -1,8 +1,9 @@
 """Paleta y helpers de estilo - consistente con ThermoPhase."""
 from PyQt6.QtWidgets import (QLabel, QTableWidget, QTableWidgetItem,
                              QHeaderView, QAbstractItemView, QPushButton,
-                             QDoubleSpinBox, QSpinBox, QFrame)
-from PyQt6.QtGui import QColor, QBrush
+                             QDoubleSpinBox, QSpinBox, QFrame, QLineEdit,
+                             QAbstractSpinBox)
+from PyQt6.QtGui import QColor, QBrush, QDoubleValidator, QIntValidator
 from PyQt6.QtCore import Qt
 
 WHITE    = "#FFFFFF"
@@ -14,9 +15,9 @@ BORDER   = "#888888"
 TEXT     = "#000000"
 TEXT_DIM = "#555555"
 TEXT_RES = "#000080"
-AZUL     = "#000080"
-ROJO     = "#8B0000"
-VERDE    = "#006400"
+AZUL     = "#1a4fa8"
+ROJO     = "#a83218"
+VERDE    = "#2d9d2d"
 FONT_F   = "Arial Narrow"
 FS       = 10
 
@@ -30,9 +31,9 @@ QSS_BTN = (f'QPushButton{{background:{GRAY_LBL};color:{TEXT};'
            f'QPushButton:hover{{background:{GRAY_RES};}}'
            f'QPushButton:pressed{{border:2px inset {BORDER};}}'
            f'QPushButton:disabled{{color:{TEXT_DIM};background:{GRAY_RES};}}')
-QSS_SPIN = (f'QDoubleSpinBox,QSpinBox{{background:{WHITE};color:{TEXT_RES};'
-            f'font-family:"{FONT_F}";font-size:{FS}pt;'
-            f'border:1px solid {BORDER};padding:1px 3px;}}')
+QSS_CAMPO = (f'QDoubleSpinBox,QSpinBox,QLineEdit{{background:{WHITE};'
+             f'color:{TEXT_RES};font-family:"{FONT_F}";font-size:{FS}pt;'
+             f'border:1px solid {BORDER};padding:1px 3px;}}')
 QSS_TBL = (f'QTableWidget{{background:{WHITE};border:1px solid {BORDER};'
            f'font-family:"{FONT_F}";font-size:{FS}pt;gridline-color:{BORDER};}}'
            f'QHeaderView::section{{background:{GRAY_HDR};border:1px solid {BORDER};'
@@ -96,25 +97,46 @@ def boton(txt, w=None):
 
 
 def spin(vmin, vmax, val, dec=2, paso=1.0, w=90):
+    """Campo numerico SIN botones de incremento/decremento."""
     s = QDoubleSpinBox()
+    s.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
     s.setRange(vmin, vmax)
     s.setDecimals(dec)
     s.setSingleStep(paso)
     s.setValue(val)
-    s.setStyleSheet(QSS_SPIN)
+    s.setStyleSheet(QSS_CAMPO)
     s.setFixedWidth(w)
     s.setAlignment(Qt.AlignmentFlag.AlignRight)
     return s
 
 
-def ispin(vmin, vmax, val, w=60):
-    s = QSpinBox()
-    s.setRange(vmin, vmax)
-    s.setValue(val)
-    s.setStyleSheet(QSS_SPIN)
-    s.setFixedWidth(w)
-    s.setAlignment(Qt.AlignmentFlag.AlignRight)
-    return s
+def campo(val="", w=90, decimales=True, vmin=0.0, vmax=1e7):
+    """
+    Campo de texto libre que ADMITE quedar vacio.
+    Vacio = dato no considerado (boquilla no instalada, caudal no evaluado).
+    """
+    e = QLineEdit(str(val))
+    e.setStyleSheet(QSS_CAMPO)
+    e.setFixedWidth(w)
+    e.setAlignment(Qt.AlignmentFlag.AlignRight)
+    if decimales:
+        v = QDoubleValidator(vmin, vmax, 4)
+        v.setNotation(QDoubleValidator.Notation.StandardNotation)
+    else:
+        v = QIntValidator(int(vmin), int(vmax))
+    e.setValidator(v)
+    return e
+
+
+def leer_campo(e, defecto=None):
+    """Devuelve float, o `defecto` si el campo esta vacio o es invalido."""
+    t = e.text().strip().replace(",", ".")
+    if not t:
+        return defecto
+    try:
+        return float(t)
+    except ValueError:
+        return defecto
 
 
 def tabla(filas, cols, headers, stretch_col=0):

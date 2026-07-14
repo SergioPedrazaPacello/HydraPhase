@@ -33,10 +33,6 @@ C_BOQ      = 156.0       # constante de boquillas (embebe Cd = 0.95)
 GRAD_PSI   = 0.052       # psi/(ppg*ft)  -> presion hidrostatica
 CD_BOQ     = 0.95        # coeficiente de descarga implicito en C_BOQ
 
-# Factores de conversion (solo para presentacion)
-PSI_A_KPA  = 6.894757
-FT_A_M     = 0.3048
-GPM_A_LPM  = 3.785412
 
 
 # ══════════════════════════════════════════════════════════════════════
