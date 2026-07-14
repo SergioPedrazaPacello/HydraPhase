@@ -26,7 +26,7 @@ class TabResultados(QWidget):
         root.setSpacing(6)
 
         root.addWidget(seccion("Perdidas de presion por friccion, tramo por tramo"))
-        self.tbl = tabla(0, len(COLS), COLS)
+        self.tbl = tabla(0, len(COLS), COLS, col_ancha=0, ancho=95)
         root.addWidget(self.tbl, 1)
 
         fila = QHBoxLayout()

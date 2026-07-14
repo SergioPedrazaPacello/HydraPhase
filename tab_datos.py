@@ -11,6 +11,10 @@ from engine_hidraulica import (Fluido, TramoSarta, TramoHoyo, Pozo,
                                pozo_referencia)
 import dialogos as dlg
 
+# Tamano fijo de los tres grupos superiores
+ANCHO_GRUPO = 300
+ALTO_GRUPO  = 205
+
 
 class _TablaEditable(QTableWidget):
     """Tabla con celdas editables, estilo consistente."""
@@ -71,9 +75,10 @@ class TabDatos(QWidget):
 
         fila = QHBoxLayout()
         fila.setSpacing(8)
-        fila.addWidget(self._grupo_fluido(), 1)
-        fila.addWidget(self._grupo_broca(), 1)
-        fila.addWidget(self._grupo_operacion(), 1)
+        fila.addWidget(self._grupo_fluido())
+        fila.addWidget(self._grupo_broca())
+        fila.addWidget(self._grupo_operacion())
+        fila.addStretch(1)          # el espacio sobrante va a la derecha
         root.addLayout(fila)
 
         fila2 = QHBoxLayout()
@@ -102,47 +107,58 @@ class TabDatos(QWidget):
     def _grupo_fluido(self):
         g = QGroupBox("Fluido de perforacion")
         g.setStyleSheet(QSS_GROUP)
-        l = QGridLayout(g)
-        l.setContentsMargins(8, 6, 8, 6)
-        l.setVerticalSpacing(4)
-
-        self.sp_rho = spin(0.0, 25.0, 0.0, 3, 0.1)
-        l.addWidget(etiqueta("Densidad del lodo"), 0, 0)
-        l.addWidget(self.sp_rho, 0, 1)
-        l.addWidget(etiqueta("ppg", dim=True), 0, 2)
-
-        l.addWidget(seccion("Lecturas de viscosimetro Fann"), 1, 0, 1, 3)
-
-        self.sp_R600 = spin(0, 400, 0, 1, 1)
-        self.sp_R300 = spin(0, 400, 0, 1, 1)
-        self.sp_R100 = spin(0, 400, 0, 1, 1)
-        self.sp_R3   = spin(0, 400, 0, 1, 1)
-        for i, (t, s) in enumerate([("R600 (600 rpm)", self.sp_R600),
-                                    ("R300 (300 rpm)", self.sp_R300),
-                                    ("R100 (100 rpm)", self.sp_R100),
-                                    ("R3   (3 rpm)",   self.sp_R3)]):
-            l.addWidget(etiqueta(t), 2 + i, 0)
-            l.addWidget(s, 2 + i, 1)
-            s.valueChanged.connect(self._refrescar_params)
-
-        l.setColumnStretch(0, 1)
-        l.setRowStretch(6, 1)
-        return g
-
-    def _grupo_broca(self):
-        g = QGroupBox("Broca / Trepano")
-        g.setStyleSheet(QSS_GROUP)
+        g.setFixedSize(ANCHO_GRUPO, ALTO_GRUPO)
         v = QVBoxLayout(g)
         v.setContentsMargins(8, 6, 8, 6)
         v.setSpacing(4)
 
         top = QGridLayout()
         top.setVerticalSpacing(4)
-        self.sp_dbroca = spin(0.0, 30.0, 0.0, 3, 0.125)
+        top.setHorizontalSpacing(6)
+        self.sp_rho = spin(0.0, 25.0, 0.0, 3, 0.1, 80)
+        top.addWidget(etiqueta("Densidad del lodo"), 0, 0)
+        top.addWidget(self.sp_rho, 0, 1)
+        top.addWidget(etiqueta("ppg", dim=True), 0, 2)
+        top.setColumnStretch(3, 1)
+        v.addLayout(top)
+
+        v.addWidget(seccion("Lecturas de viscosimetro Fann"))
+
+        gf = QGridLayout()
+        gf.setVerticalSpacing(4)
+        gf.setHorizontalSpacing(6)
+        self.sp_R600 = spin(0, 400, 0, 1, 1, 80)
+        self.sp_R300 = spin(0, 400, 0, 1, 1, 80)
+        self.sp_R100 = spin(0, 400, 0, 1, 1, 80)
+        self.sp_R3   = spin(0, 400, 0, 1, 1, 80)
+        for i, (t, s) in enumerate([("R600 (600 rpm)", self.sp_R600),
+                                    ("R300 (300 rpm)", self.sp_R300),
+                                    ("R100 (100 rpm)", self.sp_R100),
+                                    ("R3   (3 rpm)",   self.sp_R3)]):
+            gf.addWidget(etiqueta(t), i, 0)
+            gf.addWidget(s, i, 1)
+            s.valueChanged.connect(self._refrescar_params)
+        gf.setColumnStretch(2, 1)
+        v.addLayout(gf)
+        v.addStretch(1)
+        return g
+
+    def _grupo_broca(self):
+        g = QGroupBox("Broca / Trepano")
+        g.setStyleSheet(QSS_GROUP)
+        g.setFixedSize(ANCHO_GRUPO, ALTO_GRUPO)
+        v = QVBoxLayout(g)
+        v.setContentsMargins(8, 6, 8, 6)
+        v.setSpacing(4)
+
+        top = QGridLayout()
+        top.setVerticalSpacing(4)
+        top.setHorizontalSpacing(6)
+        self.sp_dbroca = spin(0.0, 30.0, 0.0, 3, 0.125, 80)
         top.addWidget(etiqueta("Diametro de broca"), 0, 0)
         top.addWidget(self.sp_dbroca, 0, 1)
         top.addWidget(etiqueta("in", dim=True), 0, 2)
-        top.setColumnStretch(0, 1)
+        top.setColumnStretch(3, 1)
         v.addLayout(top)
 
         v.addWidget(seccion("Boquillas  (en 1/32 de pulgada)"))
@@ -152,14 +168,13 @@ class TabDatos(QWidget):
         gb.setHorizontalSpacing(6)
         self.ed_boq = []
         for i in range(6):
-            e = campo("", 62, decimales=False, vmin=0, vmax=64)
+            e = campo("", 58, decimales=False, vmin=0, vmax=64)
             self.ed_boq.append(e)
             e.textChanged.connect(self._refrescar_params)
             r, c = i // 2, i % 2
             gb.addWidget(etiqueta(f"Boquilla N{i+1}"), r, c * 2)
             gb.addWidget(e, r, c * 2 + 1)
-        gb.setColumnStretch(1, 1)
-        gb.setColumnStretch(3, 1)
+        gb.setColumnStretch(4, 1)
         v.addLayout(gb)
         v.addStretch(1)
         return g
@@ -167,16 +182,18 @@ class TabDatos(QWidget):
     def _grupo_operacion(self):
         g = QGroupBox("Operacion")
         g.setStyleSheet(QSS_GROUP)
+        g.setFixedSize(ANCHO_GRUPO, ALTO_GRUPO)
         v = QVBoxLayout(g)
         v.setContentsMargins(8, 6, 8, 6)
         v.setSpacing(4)
 
-        self.sp_psup = spin(0, 1000, 0, 1, 5)
-        self.sp_pmot = spin(0, 3000, 0, 1, 10)
-        self.sp_tvd  = spin(0, 40000, 0, 0, 100, 100)
+        self.sp_psup = spin(0, 1000, 0, 1, 5, 80)
+        self.sp_pmot = spin(0, 3000, 0, 1, 10, 80)
+        self.sp_tvd  = spin(0, 40000, 0, 0, 100, 80)
 
         top = QGridLayout()
         top.setVerticalSpacing(4)
+        top.setHorizontalSpacing(6)
         for i, (t, s, u) in enumerate([
                 ("Perdida en superficie", self.sp_psup, "psi"),
                 ("Diferencial motor / MWD", self.sp_pmot, "psi"),
@@ -184,7 +201,7 @@ class TabDatos(QWidget):
             top.addWidget(etiqueta(t), i, 0)
             top.addWidget(s, i, 1)
             top.addWidget(etiqueta(u, dim=True), i, 2)
-        top.setColumnStretch(0, 1)
+        top.setColumnStretch(3, 1)
         v.addLayout(top)
 
         v.addWidget(seccion("Caudales a evaluar  (gpm)"))
@@ -194,22 +211,22 @@ class TabDatos(QWidget):
         gq.setHorizontalSpacing(6)
         self.ed_Q = []
         for i in range(6):
-            e = campo("", 62, vmin=0, vmax=5000)
+            e = campo("", 58, vmin=0, vmax=5000)
             self.ed_Q.append(e)
             r, c = i // 2, i % 2
             gq.addWidget(etiqueta(f"Caudal N{i+1}"), r, c * 2)
             gq.addWidget(e, r, c * 2 + 1)
-        gq.setColumnStretch(1, 1)
-        gq.setColumnStretch(3, 1)
+        gq.setColumnStretch(4, 1)
         v.addLayout(gq)
 
         bot = QGridLayout()
         bot.setVerticalSpacing(4)
-        self.sp_Qop = spin(0, 5000, 0, 0, 25, 90)
+        bot.setHorizontalSpacing(6)
+        self.sp_Qop = spin(0, 5000, 0, 0, 25, 80)
         bot.addWidget(etiqueta("Caudal de operacion"), 0, 0)
         bot.addWidget(self.sp_Qop, 0, 1)
         bot.addWidget(etiqueta("gpm", dim=True), 0, 2)
-        bot.setColumnStretch(0, 1)
+        bot.setColumnStretch(3, 1)
         v.addLayout(bot)
         v.addStretch(1)
         return g

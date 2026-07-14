@@ -25,8 +25,9 @@ import dialogos as dlg
 
 VERSION = "1.0"
 
-# Tamano fijo de la ventana (no redimensionable, como ThermoPhase)
+# Tamano inicial de la ventana (redimensionable)
 ANCHO, ALTO = 1150, 800
+ANCHO_MIN, ALTO_MIN = 1000, 700
 
 
 def recurso(nombre):
@@ -45,8 +46,10 @@ class MainWindow(QMainWindow):
         if ico:
             self.setWindowIcon(QIcon(ico))
 
-        # Ventana de tamano fijo
-        self.setFixedSize(ANCHO, ALTO)
+        # Redimensionable: los tres grupos superiores tienen ancho fijo,
+        # el espacio sobrante queda libre a la derecha.
+        self.resize(ANCHO, ALTO)
+        self.setMinimumSize(ANCHO_MIN, ALTO_MIN)
 
         self._build()
 
@@ -89,7 +92,6 @@ class MainWindow(QMainWindow):
         self.tab_dat.datos_cambiados.connect(self.calcular)
 
         sb = QStatusBar()
-        sb.setSizeGripEnabled(False)
         sb.setStyleSheet(f'background:{GRAY_LBL};border-top:1px solid {BORDER};')
         self.lbl_sb = QLabel("  Modelo: Ley de Potencia  /  "
                              "Unidades de campo: psi, ft, in, gpm, ppg  /  "
