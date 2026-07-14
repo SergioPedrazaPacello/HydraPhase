@@ -1,0 +1,107 @@
+name: Build HydraPhase (Windows)
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:          # permite lanzarlo a mano desde la pestana Actions
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # 1) Validacion: el motor debe reproducir las tablas del paper
+  # ────────────────────────────────────────────────────────────────
+  test:
+    name: Validacion del motor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias del motor
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy
+
+      - name: Ejecutar suite de validacion
+        run: python test_validacion.py
+
+  # ────────────────────────────────────────────────────────────────
+  # 2) Compilacion del ejecutable de Windows
+  # ────────────────────────────────────────────────────────────────
+  build:
+    name: Compilar HydraPhase.exe
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Verificar sintaxis
+        run: python -m compileall -q .
+
+      - name: Compilar con PyInstaller
+        run: pyinstaller HydraPhase.spec --noconfirm --clean
+
+      - name: Comprobar que el .exe existe
+        shell: pwsh
+        run: |
+          if (-Not (Test-Path "dist\HydraPhase.exe")) {
+            Write-Error "No se genero dist\HydraPhase.exe"
+            exit 1
+          }
+          $mb = (Get-Item "dist\HydraPhase.exe").Length / 1MB
+          Write-Host ("HydraPhase.exe generado correctamente - {0:N1} MB" -f $mb)
+
+      - name: Publicar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: HydraPhase-windows
+          path: dist/HydraPhase.exe
+          retention-days: 90
+          if-no-files-found: error
+
+  # ────────────────────────────────────────────────────────────────
+  # 3) Release automatico al empujar un tag  (git tag v1.0 && git push --tags)
+  # ────────────────────────────────────────────────────────────────
+  release:
+    name: Publicar release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Descargar el ejecutable
+        uses: actions/download-artifact@v4
+        with:
+          name: HydraPhase-windows
+          path: dist
+
+      - name: Crear release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/HydraPhase.exe
+          generate_release_notes: true
+          body: |
+            **HydraPhase** - Simulador de hidraulica de perforacion
+            Modelo reologico: Ley de Potencia (Power Law)
+
+            Ejecutable portable para Windows. No requiere instalacion
+            ni tener Python instalado.
