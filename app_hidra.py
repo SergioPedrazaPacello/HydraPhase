@@ -4,15 +4,16 @@ Modelo reologico: Ley de Potencia (Power Law)
 
 Ejecutar:  python app_hidra.py
 """
-import sys, os, copy
+import sys, os, copy, time
 
 import matplotlib
 matplotlib.use('QtAgg')
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QTabWidget, QStatusBar, QLabel,
-                             QCheckBox)
-from PyQt6.QtGui import QFont
+                             QCheckBox, QSplashScreen)
+from PyQt6.QtGui import QFont, QIcon, QPixmap
+from PyQt6.QtCore import Qt
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -24,13 +25,29 @@ import dialogos as dlg
 
 VERSION = "1.0"
 
+# Tamano fijo de la ventana (no redimensionable, como ThermoPhase)
+ANCHO, ALTO = 1150, 800
+
+
+def recurso(nombre):
+    """Ruta de un recurso, funcione en desarrollo o dentro del .exe."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    p = os.path.join(base, nombre)
+    return p if os.path.exists(p) else None
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"HydraPhase {VERSION}  /  Hidraulica de Perforacion")
-        self.resize(1280, 860)
-        self.setMinimumSize(1120, 760)
+
+        ico = recurso("hydraphase.ico")
+        if ico:
+            self.setWindowIcon(QIcon(ico))
+
+        # Ventana de tamano fijo
+        self.setFixedSize(ANCHO, ALTO)
+
         self._build()
 
     def _build(self):
@@ -72,6 +89,7 @@ class MainWindow(QMainWindow):
         self.tab_dat.datos_cambiados.connect(self.calcular)
 
         sb = QStatusBar()
+        sb.setSizeGripEnabled(False)
         sb.setStyleSheet(f'background:{GRAY_LBL};border-top:1px solid {BORDER};')
         self.lbl_sb = QLabel("  Modelo: Ley de Potencia  /  "
                              "Unidades de campo: psi, ft, in, gpm, ppg  /  "
@@ -110,8 +128,10 @@ class MainWindow(QMainWindow):
                                     pozo_alt=pozo_alt, etq=etq, etq_alt=etq_alt)
 
             r = self.tab_res.res
+            f = pozo.fluido
             self.lbl_sb.setText(
                 f"  Ley de Potencia  /  Q = {Q_op:,.0f} gpm  /  "
+                f"n = {f.n_tuberia():.4f} tub, {f.n_anular():.4f} ann  /  "
                 f"P bomba = {r.P_bomba:,.1f} psi  /  "
                 f"\u0394P broca = {r.broca.dP:,.1f} psi ({r.broca.pct_dP:.1f} %)"
                 f"  /  ECD = {r.ECD:.3f} ppg  /  HSI = {r.broca.HSI:.2f}")
@@ -144,7 +164,30 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setFont(QFont(FONT_F, FS))
+
+    ico = recurso("hydraphase.ico")
+    if ico:
+        app.setWindowIcon(QIcon(ico))
+
+    # ── Splash ────────────────────────────────────────────────────
+    splash = None
+    sp = recurso("splash.png")
+    if sp:
+        splash = QSplashScreen(QPixmap(sp),
+                               Qt.WindowType.WindowStaysOnTopHint)
+        splash.show()
+        app.processEvents()
+        t0 = time.time()
+
     win = MainWindow()
+
+    if splash:
+        # Mantener el splash visible al menos 1.2 s
+        while time.time() - t0 < 1.2:
+            app.processEvents()
+            time.sleep(0.02)
+        splash.finish(win)
+
     win.show()
     sys.exit(app.exec())
 

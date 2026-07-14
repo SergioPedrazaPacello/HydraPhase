@@ -139,7 +139,8 @@ def leer_campo(e, defecto=None):
         return defecto
 
 
-def tabla(filas, cols, headers, stretch_col=0):
+def tabla(filas, cols, headers):
+    """Tabla de solo lectura. Todas las columnas del mismo ancho."""
     t = QTableWidget(filas, cols)
     t.setHorizontalHeaderLabels(headers)
     t.verticalHeader().setVisible(False)
@@ -148,10 +149,7 @@ def tabla(filas, cols, headers, stretch_col=0):
     t.setFocusPolicy(Qt.FocusPolicy.NoFocus)
     t.setStyleSheet(QSS_TBL)
     hh = t.horizontalHeader()
-    for c in range(cols):
-        hh.setSectionResizeMode(
-            c, QHeaderView.ResizeMode.Stretch if c == stretch_col
-            else QHeaderView.ResizeMode.Fixed)
+    hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
     t.setAlternatingRowColors(False)
     return t
 

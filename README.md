@@ -46,3 +46,13 @@ En GitHub Actions: `.github/workflows/build.yml` (test → build → release por
 Las tablas 2, 3, 4 y 5 rotulan las presiones como "KPa". Es un error de
 rotulado: los valores son **psi**. Verificado reproduciendo la Tabla 3
 digito por digito.
+
+## Recursos graficos
+El logo (torre de perforacion minimalista), el icono y el splash se generan
+por codigo, no son binarios opacos:
+```
+python recursos/generar_logo.py
+```
+Produce `hydraphase.ico` (multi-resolucion 16-256 px), `splash.png` y
+`recursos/logo.png`. El `.spec` de PyInstaller los detecta y los embebe
+automaticamente en el ejecutable.

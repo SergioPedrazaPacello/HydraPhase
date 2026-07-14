@@ -83,12 +83,7 @@ class TabDatos(QWidget):
         root.addLayout(fila2, 1)
 
         barra = QHBoxLayout()
-        self.lbl_params = QLabel("")
-        self.lbl_params.setStyleSheet(
-            f'background:{GRAY_LBL};border:1px solid {BORDER};'
-            f'color:{TEXT_RES};font-family:"{FONT_F}";font-size:{FS}pt;'
-            f'padding:4px 8px;')
-        barra.addWidget(self.lbl_params, 1)
+        barra.addStretch(1)
 
         self.btn_limpiar = boton("Limpiar", 90)
         self.btn_limpiar.clicked.connect(self.limpiar_todo)
@@ -137,71 +132,86 @@ class TabDatos(QWidget):
     def _grupo_broca(self):
         g = QGroupBox("Broca / Trepano")
         g.setStyleSheet(QSS_GROUP)
-        l = QGridLayout(g)
-        l.setContentsMargins(8, 6, 8, 6)
-        l.setVerticalSpacing(4)
+        v = QVBoxLayout(g)
+        v.setContentsMargins(8, 6, 8, 6)
+        v.setSpacing(4)
 
+        top = QGridLayout()
+        top.setVerticalSpacing(4)
         self.sp_dbroca = spin(0.0, 30.0, 0.0, 3, 0.125)
-        l.addWidget(etiqueta("Diametro de broca"), 0, 0)
-        l.addWidget(self.sp_dbroca, 0, 1)
-        l.addWidget(etiqueta("in", dim=True), 0, 2)
+        top.addWidget(etiqueta("Diametro de broca"), 0, 0)
+        top.addWidget(self.sp_dbroca, 0, 1)
+        top.addWidget(etiqueta("in", dim=True), 0, 2)
+        top.setColumnStretch(0, 1)
+        v.addLayout(top)
 
-        l.addWidget(seccion("Boquillas  (en 1/32 de pulgada)"), 1, 0, 1, 3)
+        v.addWidget(seccion("Boquillas  (en 1/32 de pulgada)"))
+
+        gb = QGridLayout()
+        gb.setVerticalSpacing(4)
+        gb.setHorizontalSpacing(6)
         self.ed_boq = []
         for i in range(6):
-            e = campo("", 60, decimales=False, vmin=0, vmax=64)
+            e = campo("", 62, decimales=False, vmin=0, vmax=64)
             self.ed_boq.append(e)
             e.textChanged.connect(self._refrescar_params)
-            r, c = 2 + i // 2, i % 2
-            w = QWidget()
-            w.setStyleSheet('background:transparent;')
-            h = QHBoxLayout(w)
-            h.setContentsMargins(0, 0, 0, 0)
-            h.addWidget(etiqueta(f"Boquilla N{i+1}"))
-            h.addWidget(e)
-            l.addWidget(w, r, c * 2, 1, 2 if c else 1)
-        l.setRowStretch(5, 1)
+            r, c = i // 2, i % 2
+            gb.addWidget(etiqueta(f"Boquilla N{i+1}"), r, c * 2)
+            gb.addWidget(e, r, c * 2 + 1)
+        gb.setColumnStretch(1, 1)
+        gb.setColumnStretch(3, 1)
+        v.addLayout(gb)
+        v.addStretch(1)
         return g
 
     def _grupo_operacion(self):
         g = QGroupBox("Operacion")
         g.setStyleSheet(QSS_GROUP)
-        l = QGridLayout(g)
-        l.setContentsMargins(8, 6, 8, 6)
-        l.setVerticalSpacing(4)
+        v = QVBoxLayout(g)
+        v.setContentsMargins(8, 6, 8, 6)
+        v.setSpacing(4)
 
         self.sp_psup = spin(0, 1000, 0, 1, 5)
         self.sp_pmot = spin(0, 3000, 0, 1, 10)
         self.sp_tvd  = spin(0, 40000, 0, 0, 100, 100)
 
+        top = QGridLayout()
+        top.setVerticalSpacing(4)
         for i, (t, s, u) in enumerate([
                 ("Perdida en superficie", self.sp_psup, "psi"),
                 ("Diferencial motor / MWD", self.sp_pmot, "psi"),
                 ("TVD  (0 = usar MD)", self.sp_tvd, "ft")]):
-            l.addWidget(etiqueta(t), i, 0)
-            l.addWidget(s, i, 1)
-            l.addWidget(etiqueta(u, dim=True), i, 2)
+            top.addWidget(etiqueta(t), i, 0)
+            top.addWidget(s, i, 1)
+            top.addWidget(etiqueta(u, dim=True), i, 2)
+        top.setColumnStretch(0, 1)
+        v.addLayout(top)
 
-        l.addWidget(seccion("Caudales a evaluar  (gpm)"), 3, 0, 1, 3)
+        v.addWidget(seccion("Caudales a evaluar  (gpm)"))
+
+        gq = QGridLayout()
+        gq.setVerticalSpacing(4)
+        gq.setHorizontalSpacing(6)
         self.ed_Q = []
-        for i in range(5):
-            e = campo("", 70, vmin=0, vmax=5000)
+        for i in range(6):
+            e = campo("", 62, vmin=0, vmax=5000)
             self.ed_Q.append(e)
-            r, c = 4 + i // 2, i % 2
-            w = QWidget()
-            w.setStyleSheet('background:transparent;')
-            h = QHBoxLayout(w)
-            h.setContentsMargins(0, 0, 0, 0)
-            h.addWidget(etiqueta(f"Caudal N{i+1}"))
-            h.addWidget(e)
-            l.addWidget(w, r, c * 2, 1, 2 if c else 1)
+            r, c = i // 2, i % 2
+            gq.addWidget(etiqueta(f"Caudal N{i+1}"), r, c * 2)
+            gq.addWidget(e, r, c * 2 + 1)
+        gq.setColumnStretch(1, 1)
+        gq.setColumnStretch(3, 1)
+        v.addLayout(gq)
 
+        bot = QGridLayout()
+        bot.setVerticalSpacing(4)
         self.sp_Qop = spin(0, 5000, 0, 0, 25, 90)
-        l.addWidget(etiqueta("Caudal de operacion"), 7, 0)
-        l.addWidget(self.sp_Qop, 7, 1)
-        l.addWidget(etiqueta("gpm", dim=True), 7, 2)
-        l.setColumnStretch(0, 1)
-        l.setRowStretch(8, 1)
+        bot.addWidget(etiqueta("Caudal de operacion"), 0, 0)
+        bot.addWidget(self.sp_Qop, 0, 1)
+        bot.addWidget(etiqueta("gpm", dim=True), 0, 2)
+        bot.setColumnStretch(0, 1)
+        v.addLayout(bot)
+        v.addStretch(1)
         return g
 
     def _grupo_sarta(self):
@@ -414,24 +424,11 @@ class TabDatos(QWidget):
     def _refrescar_params(self):
         try:
             p = self.get_pozo()
-            f = p.fluido
             md = p.prof_broca()
-            if f.R600 <= f.R300 or f.R100 <= f.R3 or f.rho <= 0:
-                self.lbl_params.setText(
-                    "  Ley de Potencia  /  ingrese los datos del fluido "
-                    "para ver los parametros reologicos")
-            else:
-                self.lbl_params.setText(
-                    f"  Ley de Potencia  /  Tuberia: n = {f.n_tuberia():.4f}   "
-                    f"K = {f.K_tuberia():.2f} eq cp  /  "
-                    f"Anular: n = {f.n_anular():.4f}   "
-                    f"K = {f.K_anular():.2f} eq cp  /  "
-                    f"TFA = {p.area_boquillas():.4f} in\u00b2  /  "
-                    f"MD broca = {md:,.0f} ft")
             self.lbl_md.setText(f"Profundidad de broca: {md:,.0f} ft"
                                 if md > 0 else "")
             self.lbl_hoyo.setText(
                 f"Cobertura: 0 - {max(h.prof_base for h in p.hoyo):,.0f} ft"
                 if p.hoyo else "")
         except Exception:
-            self.lbl_params.setText("  Ley de Potencia  /  datos incompletos")
+            pass

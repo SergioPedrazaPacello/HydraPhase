@@ -67,6 +67,9 @@ class TabGraficas(QWidget):
         root.addLayout(barra)
 
         self.fig = Figure(figsize=(9, 6), dpi=100, facecolor=GRAY_RES)
+        # Borde que engloba el grafico completo (ejes, etiquetas y titulo)
+        self.fig.patch.set_edgecolor(BORDER)
+        self.fig.patch.set_linewidth(2.0)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setStyleSheet(f'border:1px solid {BORDER};')
         root.addWidget(self.canvas, 1)
@@ -91,8 +94,9 @@ class TabGraficas(QWidget):
         p, _ = QFileDialog.getSaveFileName(self, "Guardar grafica",
                                            "grafica.png", "PNG (*.png)")
         if p:
-            self.fig.savefig(p, dpi=200, bbox_inches="tight",
-                             facecolor=self.fig.get_facecolor())
+            self.fig.savefig(p, dpi=200,
+                             facecolor=self.fig.get_facecolor(),
+                             edgecolor=self.fig.get_edgecolor())
 
     # ──────────────────────────────────────────────────────────────
     def _estilo(self, ax):
@@ -110,6 +114,8 @@ class TabGraficas(QWidget):
 
     def _dibujar(self):
         self.fig.clear()
+        self.fig.patch.set_edgecolor(BORDER)
+        self.fig.patch.set_linewidth(2.0)
         ax = self.fig.add_subplot(111)
 
         if not self.datos:
@@ -145,7 +151,7 @@ class TabGraficas(QWidget):
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             ax.set_xlabel("Caudal (gpm)")
             ax.set_ylabel("Presion de bomba (psi)")
-            ax.set_title("Presion de bomba vs Caudal")
+            ax.set_title("Presion de bomba vs Caudal", loc="right")
 
         elif i == 1:
             ax.loglog(Qs, S(bar, "dP_parasita"), marker='^', ms=MS, lw=LW,
@@ -155,7 +161,7 @@ class TabGraficas(QWidget):
                           ms=MS, lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             ax.set_xlabel("Caudal (gpm)")
             ax.set_ylabel("Presion parasita (psi)")
-            ax.set_title("Presion parasita vs Caudal  /  escala log-log")
+            ax.set_title("Presion parasita vs Caudal  /  escala log-log", loc="right")
             ax.grid(True, which="both", linestyle='--', alpha=0.4, color=GRAY_LBL)
 
         elif i in (2, 3):
@@ -168,7 +174,7 @@ class TabGraficas(QWidget):
                             label=d["etq_alt"])
                 ax.set_ylabel("Presion circulante (psi)")
                 ax.set_title(f"Presion circulante vs Longitud U-Tube  /  "
-                             f"Q = {d['Q_op']:,.0f} gpm")
+                             f"Q = {d['Q_op']:,.0f} gpm", loc="right")
             else:
                 ax.plot(pf["L"], pf["P_hyd"], lw=LW, color=GRIS,
                         label="Presion hidrostatica")
@@ -180,7 +186,7 @@ class TabGraficas(QWidget):
                             label=f"Hidrostatica + dinamica ({d['etq_alt']})")
                 ax.set_ylabel("Presion (psi)")
                 ax.set_title(f"Perfil de presion a lo largo del circuito  /  "
-                             f"Q = {d['Q_op']:,.0f} gpm")
+                             f"Q = {d['Q_op']:,.0f} gpm", loc="right")
             ax.set_xlabel("Distancia desde el standpipe, longitud U-Tube (ft)")
             Lb = sum(t.longitud for t in d["res"].tramos_int)
             ax.axvline(Lb, color=VERDE, ls=":", lw=0.9)
@@ -196,7 +202,7 @@ class TabGraficas(QWidget):
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             ax.set_xlabel("Caudal (gpm)")
             ax.set_ylabel("Caida de presion anular total (psi)")
-            ax.set_title("Caida de presion anular vs Caudal")
+            ax.set_title("Caida de presion anular vs Caudal", loc="right")
 
         elif i == 5:
             ax.plot(Qs, S(bar, "ECD"), marker='^', ms=MS, lw=LW,
@@ -211,7 +217,7 @@ class TabGraficas(QWidget):
                         textcoords="offset points", fontsize=8, color=TEXT_DIM)
             ax.set_xlabel("Caudal (gpm)")
             ax.set_ylabel("Densidad equivalente de circulacion (ppg)")
-            ax.set_title("ECD vs Caudal")
+            ax.set_title("ECD vs Caudal", loc="right")
 
         else:
             r = d["res"]
@@ -235,7 +241,7 @@ class TabGraficas(QWidget):
             ax.set_xlabel("Caida de presion (psi)")
             ax.set_title(f"Distribucion de las perdidas de presion  /  "
                          f"Q = {d['Q_op']:,.0f} gpm  /  "
-                         f"P bomba = {r.P_bomba:,.0f} psi")
+                         f"P bomba = {r.P_bomba:,.0f} psi", loc="right")
             ax.set_xlim(0, max(vals) * 1.45)
             ax.grid(True, axis="x", linestyle='--', alpha=0.4, color=GRAY_LBL)
             ax.grid(False, axis="y")

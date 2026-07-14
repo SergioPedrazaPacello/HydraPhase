@@ -10,7 +10,6 @@ from engine_hidraulica import calcular, barrido_caudal
 
 COLS = ["Tramo", "Regimen", "D (in)", "L (ft)", "V (ft/s)", "\u03bce (cp)",
         "NRe", "f", "Gradiente (psi/ft)", "\u0394P (psi)"]
-ANCHOS = [None, 82, 66, 76, 72, 70, 82, 80, 110, 88]
 
 
 class TabResultados(QWidget):
@@ -26,18 +25,8 @@ class TabResultados(QWidget):
         root.setContentsMargins(6, 6, 6, 6)
         root.setSpacing(6)
 
-        self.lbl_cab = QLabel("Sin resultados.  Presione Calcular en la "
-                              "pestana de datos de entrada.")
-        self.lbl_cab.setStyleSheet(
-            f'background:{GRAY_LBL};border:1px solid {BORDER};color:{TEXT_RES};'
-            f'font-family:"{FONT_F}";font-size:{FS}pt;padding:4px 8px;')
-        root.addWidget(self.lbl_cab)
-
         root.addWidget(seccion("Perdidas de presion por friccion, tramo por tramo"))
-        self.tbl = tabla(0, len(COLS), COLS, 0)
-        for c, w in enumerate(ANCHOS):
-            if w:
-                self.tbl.setColumnWidth(c, w)
+        self.tbl = tabla(0, len(COLS), COLS)
         root.addWidget(self.tbl, 1)
 
         fila = QHBoxLayout()
@@ -50,19 +39,16 @@ class TabResultados(QWidget):
         root.addWidget(seccion("Barrido de caudal"))
         self.tbl_q = tabla(0, 8, ["Q (gpm)", "P bomba (psi)", "\u0394P broca (psi)",
                                   "P parasita (psi)", "\u0394P anular (psi)",
-                                  "ECD (ppg)", "HHP bomba", "HSI"], 0)
-        for c, w in enumerate([None, 110, 110, 110, 110, 90, 90, 80]):
-            if w:
-                self.tbl_q.setColumnWidth(c, w)
-        self.tbl_q.setMaximumHeight(190)
+                                  "ECD (ppg)", "HHP bomba (hp)", "HSI (hp/in\u00b2)"])
+        self.tbl_q.setMaximumHeight(180)
         root.addWidget(self.tbl_q)
 
     # ── Grupos de resumen ─────────────────────────────────────────
-    def _kv(self, layout, fila, texto, color=TEXT_RES):
+    def _kv(self, layout, fila, texto):
         layout.addWidget(etiqueta(texto), fila, 0)
         v = QLabel("")
         v.setStyleSheet(f'background:{WHITE};border:1px solid {BORDER};'
-                        f'color:{color};font-family:"{FONT_F}";font-size:{FS}pt;'
+                        f'color:{TEXT_RES};font-family:"{FONT_F}";font-size:{FS}pt;'
                         f'padding:2px 6px;')
         v.setAlignment(Qt.AlignmentFlag.AlignRight |
                        Qt.AlignmentFlag.AlignVCenter)
@@ -81,8 +67,8 @@ class TabResultados(QWidget):
         self.v_bit = self._kv(l, 2, "Boquillas de la broca (psi)")
         self.v_ann = self._kv(l, 3, "Espacio anular (psi)")
         self.v_mot = self._kv(l, 4, "Motor de fondo / MWD (psi)")
-        self.v_par = self._kv(l, 5, "Presion parasita (psi)", ROJO)
-        self.v_bom = self._kv(l, 6, "Presion de bomba (psi)", AZUL)
+        self.v_par = self._kv(l, 5, "Presion parasita (psi)")
+        self.v_bom = self._kv(l, 6, "Presion de bomba (psi)")
         l.setColumnStretch(0, 1)
         l.setRowStretch(7, 1)
         return g
@@ -96,7 +82,7 @@ class TabResultados(QWidget):
         self.v_tfa  = self._kv(l, 0, "Area total de flujo (in\u00b2)")
         self.v_vboq = self._kv(l, 1, "Velocidad en boquillas (ft/s)")
         self.v_hhp  = self._kv(l, 2, "Potencia hidraulica (hp)")
-        self.v_hsi  = self._kv(l, 3, "HSI (hp/in\u00b2)", VERDE)
+        self.v_hsi  = self._kv(l, 3, "HSI (hp/in\u00b2)")
         self.v_fj   = self._kv(l, 4, "Fuerza de impacto (lbf)")
         self.v_pct  = self._kv(l, 5, "Porcentaje de P bomba en la broca")
         self.v_hhpb = self._kv(l, 6, "HHP total de bomba (hp)")
@@ -111,7 +97,7 @@ class TabResultados(QWidget):
         l.setContentsMargins(8, 6, 8, 6)
         l.setVerticalSpacing(3)
         self.v_rho  = self._kv(l, 0, "Densidad del lodo (ppg)")
-        self.v_ecd  = self._kv(l, 1, "ECD (ppg)", AZUL)
+        self.v_ecd  = self._kv(l, 1, "ECD (ppg)")
         self.v_decd = self._kv(l, 2, "Incremento por circulacion (ppg)")
         self.v_phid = self._kv(l, 3, "Presion hidrostatica (psi)")
         self.v_pfon = self._kv(l, 4, "Presion de fondo circulando (psi)")
@@ -128,21 +114,14 @@ class TabResultados(QWidget):
         r = self.res
         f = pozo.fluido
 
-        self.lbl_cab.setText(
-            f"  Q = {Q_op:,.0f} gpm  /  lodo {f.rho:.2f} ppg  /  "
-            f"n tuberia = {f.n_tuberia():.4f}   K tuberia = {f.K_tuberia():.2f}  /  "
-            f"n anular = {f.n_anular():.4f}   K anular = {f.K_anular():.2f}  /  "
-            f"MD = {pozo.prof_broca():,.0f} ft")
-
         self.tbl.setRowCount(0)
 
         def add(t, bg):
             i = self.tbl.rowCount()
             self.tbl.insertRow(i)
             self.tbl.setRowHeight(i, 21)
-            col_reg = ROJO if t.regimen == "Turbulento" else VERDE
             vals = [(t.nombre, Qt.AlignmentFlag.AlignLeft, TEXT),
-                    (t.regimen, Qt.AlignmentFlag.AlignCenter, col_reg),
+                    (t.regimen, Qt.AlignmentFlag.AlignCenter, TEXT_RES),
                     (f"{t.D:.3f}", None, TEXT_RES),
                     (f"{t.longitud:,.0f}", None, TEXT_RES),
                     (f"{t.V:.3f}", None, TEXT_RES),
@@ -150,7 +129,7 @@ class TabResultados(QWidget):
                     (f"{t.NRe:,.0f}", None, TEXT_RES),
                     (f"{t.f:.6f}", None, TEXT_RES),
                     (f"{t.gradiente:.6f}", None, TEXT_RES),
-                    (f"{t.dP:.2f}", None, AZUL)]
+                    (f"{t.dP:.2f}", None, TEXT_RES)]
             for c, (v, al, col) in enumerate(vals):
                 a = al or (Qt.AlignmentFlag.AlignRight |
                            Qt.AlignmentFlag.AlignVCenter)
@@ -170,7 +149,7 @@ class TabResultados(QWidget):
                 txt = f"{r.broca.dP:.2f}"
             al = (Qt.AlignmentFlag.AlignLeft if c == 0 else
                   Qt.AlignmentFlag.AlignRight) | Qt.AlignmentFlag.AlignVCenter
-            self.tbl.setItem(rb, c, cell(txt, bg=GRAY_HDR, color=ROJO, align=al))
+            self.tbl.setItem(rb, c, cell(txt, bg=GRAY_HDR, color=TEXT_RES, align=al))
 
         for t in r.tramos_ann:
             add(t, GRAY_RES)
@@ -214,6 +193,5 @@ class TabResultados(QWidget):
             for c, v in enumerate(vals):
                 al = (Qt.AlignmentFlag.AlignLeft if c == 0 else
                       Qt.AlignmentFlag.AlignRight) | Qt.AlignmentFlag.AlignVCenter
-                self.tbl_q.setItem(i, c, cell(v, bg=bg,
-                                              color=AZUL if destaca else TEXT_RES,
+                self.tbl_q.setItem(i, c, cell(v, bg=bg, color=TEXT_RES,
                                               align=al))
