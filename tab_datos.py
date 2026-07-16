@@ -8,7 +8,7 @@ from estilo import (WHITE, GRAY_LBL, GRAY_RES, BORDER, TEXT, TEXT_RES,
                     TEXT_DIM, FONT_F, FS, QSS_TBL, QSS_GROUP,
                     seccion, etiqueta, boton, spin, campo, leer_campo)
 from engine_hidraulica import (Fluido, TramoSarta, TramoHoyo, Pozo,
-                               pozo_referencia)
+                               pozo_referencia, pozo_hcy2)
 import dialogos as dlg
 
 # Tamano fijo de los tres grupos superiores.
@@ -101,6 +101,10 @@ class TabDatos(QWidget):
         self.btn_caso = boton("Cargar caso de referencia", 170)
         self.btn_caso.clicked.connect(self._cargar_referencia)
         barra.addWidget(self.btn_caso)
+
+        self.btn_hcy2 = boton("Cargar pozo HCY-2", 150)
+        self.btn_hcy2.clicked.connect(self._cargar_hcy2)
+        barra.addWidget(self.btn_hcy2)
 
         self.btn_calc = boton("Calcular", 120)
         self.btn_calc.clicked.connect(lambda: self.datos_cambiados.emit())
@@ -318,6 +322,16 @@ class TabDatos(QWidget):
         dlg.info(self, "Caso de referencia cargado.\n\n"
                        "Pozo ejemplo del paper de University of Calgary (2005).\n"
                        "13000 ft / lodo 8.6 ppg / 3 boquillas de 12/32 in.")
+
+    def _cargar_hcy2(self):
+        self.cargar_pozo(pozo_hcy2())
+        for i, q in enumerate([390, 450, 500, 550, 600, 650]):
+            self.ed_Q[i].setText(str(q))
+        self.sp_Qop.setValue(550)
+        dlg.info(self, "Caso de campo cargado.\n\n"
+                       "Pozo Huacaya-2 (HCY-2) - fase 12 1/4\".\n"
+                       "Los Monos / Huamampampa, 3570 - 4290 m MD.\n"
+                       "Lodo 14.0 ppg / 6 boquillas de 15/32 in.")
 
     # ── Serializacion ─────────────────────────────────────────────
     def cargar_pozo(self, p: Pozo):

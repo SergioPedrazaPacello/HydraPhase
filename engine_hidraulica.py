@@ -400,3 +400,56 @@ def pozo_referencia(con_washout: bool = False) -> Pozo:
                 TramoHoyo("Hoyo abierto", 7.875, 1400.0, 13000.0, "hoyo")]
     return Pozo(fluido=fl, sarta=sarta, hoyo=hoyo, boquillas=[12, 12, 12],
                 dp_superficie=50.0, dp_motor=0.0, tvd=13000.0)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# CASO DE CAMPO - Pozo Huacaya-2 (HCY-2), fase 12 1/4"
+# ══════════════════════════════════════════════════════════════════════
+def pozo_hcy2() -> Pozo:
+    """
+    Caso de campo: Pozo Huacaya-2 (HCY-2, REPSOL E&P Bolivia).
+    Fase 12 1/4" - Formaciones Los Monos / Huamampampa.
+    Intervalo perforado 3570 - 4290 m MD  (11 713 - 14 075 ft).
+
+    Fuente: Programa de Perforacion HCY-2, seccion 12 1/4".
+
+    REOLOGIA (bloque "Propiedades del Lodo", lodo OBM Megadril):
+        Densidad 13.5-14.8 ppg  ->  se toma 14.0 ppg (valor representativo)
+        VP 35-60 cp   -> 47 cp
+        YP 20-35 lb/100ft2 -> 27 lb/100ft2
+            R600 = 2*VP + YP = 121
+            R300 =   VP + YP =  74
+        R100  estimada con API RP 13D:  R300 - (2/3)*VP = 43
+        R3    = 10   (lectura R3/R6 = 10/20 del programa)
+
+    ARREGLO:
+        0      - 11 713 ft : Casing 13 3/8" 72 ppf  (ID nominal 12.347")
+        11 713 - 14 075 ft : Hoyo abierto 12 1/4"   (broca PDC 12.25")
+
+    SARTA (BHA con Power Drive, de superficie hacia el fondo):
+        Drill Pipe 6 5/8", HWDP 6 5/8", Drill Collar 8", RSS/near-bit 9".
+        La longitud del Drill Pipe rellena hasta la profundidad de broca.
+
+    BOQUILLAS:
+        No listadas de forma explicita en el programa; se infieren de la
+        velocidad de chorro reportada (177 ft/s a 550 gpm -> TFA ~ 1.0 in2),
+        lo que corresponde a 6 x 15/32".
+    """
+    fl = Fluido(rho=14.0, R600=121, R300=74, R100=43, R3=10,
+                nombre="Lodo OBM Megadril (HCY-2 12 1/4\")")
+
+    sarta = [
+        TramoSarta("Drill Pipe 6 5/8\"", 6.625, 5.901, 13596.0),
+        TramoSarta("HWDP 6 5/8\"",       6.625, 4.500,    93.0),
+        TramoSarta("Drill Collar 8\"",   8.000, 3.000,   372.0),
+        TramoSarta("RSS / near-bit 9\"", 9.000, 5.125,    14.0),
+    ]
+
+    hoyo = [
+        TramoHoyo("Casing 13 3/8\" 72 ppf", 12.347,     0.0, 11713.0, "casing"),
+        TramoHoyo("Hoyo abierto 12 1/4\"",  12.250, 11713.0, 14075.0, "hoyo"),
+    ]
+
+    return Pozo(fluido=fl, sarta=sarta, hoyo=hoyo,
+                boquillas=[15, 15, 15, 15, 15, 15],
+                dp_superficie=50.0, dp_motor=0.0, tvd=14038.0)
