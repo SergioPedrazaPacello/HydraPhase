@@ -331,7 +331,9 @@ class TabDatos(QWidget):
         dlg.info(self, "Caso de campo cargado.\n\n"
                        "Pozo Huacaya-2 (HCY-2) - fase 12 1/4\".\n"
                        "Los Monos / Huamampampa, 3570 - 4290 m MD.\n"
-                       "Lodo 14.0 ppg / 6 boquillas de 15/32 in.")
+                       "Lodo 14.5 ppg / BHA completo con Power Drive.\n"
+                       "Boquillas 4x15 + 2x14 (1/32 in).\n\n"
+                       "Calibrado a 550 gpm: 2453 psi, 177 ft/s, HSI 1.1.")
 
     # ── Serializacion ─────────────────────────────────────────────
     def cargar_pozo(self, p: Pozo):

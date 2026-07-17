@@ -4,7 +4,12 @@ from PyQt6.QtWidgets import (QLabel, QTableWidget, QTableWidgetItem,
                              QDoubleSpinBox, QSpinBox, QFrame, QLineEdit,
                              QAbstractSpinBox)
 from PyQt6.QtGui import QColor, QBrush, QDoubleValidator, QIntValidator
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QLocale
+
+# Locale que SIEMPRE usa el punto como separador decimal, sin importar la
+# configuracion regional del sistema (evita que "14.5" se lea como "145" o "14"
+# en equipos con configuracion en espanol, donde el separador es la coma).
+_LOCALE_PUNTO = QLocale(QLocale.Language.English, QLocale.Country.UnitedStates)
 
 WHITE    = "#FFFFFF"
 GRAY_TIT = "#A8A8A8"
@@ -99,6 +104,7 @@ def boton(txt, w=None):
 def spin(vmin, vmax, val, dec=2, paso=1.0, w=90):
     """Campo numerico SIN botones de incremento/decremento."""
     s = QDoubleSpinBox()
+    s.setLocale(_LOCALE_PUNTO)          # admite el punto decimal (p.ej. 14.5)
     s.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
     s.setRange(vmin, vmax)
     s.setDecimals(dec)
@@ -122,6 +128,7 @@ def campo(val="", w=90, decimales=True, vmin=0.0, vmax=1e7):
     if decimales:
         v = QDoubleValidator(vmin, vmax, 4)
         v.setNotation(QDoubleValidator.Notation.StandardNotation)
+        v.setLocale(_LOCALE_PUNTO)      # admite el punto decimal
     else:
         v = QIntValidator(int(vmin), int(vmax))
     e.setValidator(v)

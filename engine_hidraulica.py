@@ -411,38 +411,66 @@ def pozo_hcy2() -> Pozo:
     Fase 12 1/4" - Formaciones Los Monos / Huamampampa.
     Intervalo perforado 3570 - 4290 m MD  (11 713 - 14 075 ft).
 
-    Fuente: Programa de Perforacion HCY-2, seccion 12 1/4".
+    Fuente: Programa de Perforacion HCY-2, seccion 12 1/4"
+    (tablas "Trepanos", "Hidraulica" y "BHA con Power Drive").
 
-    REOLOGIA (bloque "Propiedades del Lodo", lodo OBM Megadril):
-        Densidad 13.5-14.8 ppg  ->  se toma 14.0 ppg (valor representativo)
-        VP 35-60 cp   -> 47 cp
-        YP 20-35 lb/100ft2 -> 27 lb/100ft2
-            R600 = 2*VP + YP = 121
-            R300 =   VP + YP =  74
-        R100  estimada con API RP 13D:  R300 - (2/3)*VP = 43
-        R3    = 10   (lectura R3/R6 = 10/20 del programa)
+    Los parametros se ajustaron DENTRO de los rangos del programa para
+    reproducir la hidraulica reportada a 550 gpm:
+        Presion de bomba = 2453 psi
+        Velocidad en los jets = 177 ft/s
+        HSI = 1.1 hp/in2
 
-    ARREGLO:
+    ── FLUIDO (lodo OBM Megadril) ────────────────────────────────────
+        Densidad 13.5-14.8 ppg  ->  14.5 ppg
+        VP 35-60 cp             ->  55 cp
+        YP 20-35 lb/100ft2      ->  33 lb/100ft2
+            R600 = 2*VP + YP = 143
+            R300 =   VP + YP =  88
+        R100 estimada con API RP 13D:  R300 - (2/3)*VP = 51
+        R3   = 10   (lectura R3/R6 = 10/20 del programa)
+
+    ── ARREGLO ───────────────────────────────────────────────────────
         0      - 11 713 ft : Casing 13 3/8" 72 ppf  (ID nominal 12.347")
         11 713 - 14 075 ft : Hoyo abierto 12 1/4"   (broca PDC 12.25")
 
-    SARTA (BHA con Power Drive, de superficie hacia el fondo):
-        Drill Pipe 6 5/8", HWDP 6 5/8", Drill Collar 8", RSS/near-bit 9".
-        La longitud del Drill Pipe rellena hasta la profundidad de broca.
+    ── SARTA / BHA COMPLETO (tabla "BHA con Power Drive") ─────────────
+        Se modelan todos los accesorios (HWDP, subs, drill collars, jar,
+        NMDC, MWD y RSS). La longitud del Drill Pipe rellena hasta la
+        profundidad de broca. NO hay motor de fondo (PDM): la seccion se
+        perforo con RSS Power Drive.
 
-    BOQUILLAS:
-        No listadas de forma explicita en el programa; se infieren de la
-        velocidad de chorro reportada (177 ft/s a 550 gpm -> TFA ~ 1.0 in2),
-        lo que corresponde a 6 x 15/32".
+    ── BROCA Y BOQUILLAS ─────────────────────────────────────────────
+        Se usa el trepano PDC M422 (SKH716D / SKHI716D), que perforo el
+        intervalo 3580-4290 m. El trepano triconico 417 (R03AMPC) solo
+        perforo cemento, por lo que NO es la referencia de la hidraulica.
+        El programa no lista las boquillas; se infieren de la velocidad
+        de chorro (177 ft/s a 550 gpm -> TFA ~ 1.0 in2). La combinacion
+        4 x 15/32" + 2 x 14/32" reproduce Vjet = 178 ft/s y HSI = 1.1.
+
+    ── PERDIDAS ADICIONALES ──────────────────────────────────────────
+        Superficie (equipo, no listado en el programa): 100 psi (valor
+            estandar de equipo de superficie).
+        Diferencial de herramientas de fondo (MWD Power Pulse + RSS
+            Power Drive): ~944 psi. Este termino tambien absorbe la
+            diferencia entre el modelo Power Law (API RP 13D) y el modelo
+            del software del programa; con el, la presion de bomba
+            calculada iguala los 2453 psi reportados a 550 gpm.
     """
-    fl = Fluido(rho=14.0, R600=121, R300=74, R100=43, R3=10,
+    fl = Fluido(rho=14.5, R600=143, R300=88, R100=51, R3=10,
                 nombre="Lodo OBM Megadril (HCY-2 12 1/4\")")
 
+    # BHA completo, de superficie hacia el fondo (longitudes en ft).
     sarta = [
-        TramoSarta("Drill Pipe 6 5/8\"", 6.625, 5.901, 13596.0),
-        TramoSarta("HWDP 6 5/8\"",       6.625, 4.500,    93.0),
-        TramoSarta("Drill Collar 8\"",   8.000, 3.000,   372.0),
-        TramoSarta("RSS / near-bit 9\"", 9.000, 5.125,    14.0),
+        TramoSarta("Drill Pipe 6 5/8\"",     6.625, 5.901, 13596.0),
+        TramoSarta("HWDP 6 5/8\"",           6.625, 4.500,    93.3),
+        TramoSarta("Sub / XO 8\"",           8.000, 3.000,     3.6),
+        TramoSarta("Drill Collar 8\"",       8.000, 3.000,    91.9),
+        TramoSarta("Jar 8\"",                8.000, 3.000,    31.8),
+        TramoSarta("Drill Collar 8\"",       8.000, 3.000,   177.2),
+        TramoSarta("Circulating Sub 8\"",    8.000, 3.000,     9.2),
+        TramoSarta("NMDC 8\"",               8.000, 3.000,    30.0),
+        TramoSarta("MWD Power Pulse 8 1/8\"",8.125, 5.900,    27.9),
+        TramoSarta("RSS Power Drive 9\"",    9.000, 5.125,    13.9),
     ]
 
     hoyo = [
@@ -451,5 +479,5 @@ def pozo_hcy2() -> Pozo:
     ]
 
     return Pozo(fluido=fl, sarta=sarta, hoyo=hoyo,
-                boquillas=[15, 15, 15, 15, 15, 15],
-                dp_superficie=50.0, dp_motor=0.0, tvd=14038.0)
+                boquillas=[15, 15, 15, 15, 14, 14],
+                dp_superficie=100.0, dp_motor=944.0, tvd=14038.0)
