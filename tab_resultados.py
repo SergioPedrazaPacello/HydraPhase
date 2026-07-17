@@ -29,6 +29,9 @@ class TabResultados(QWidget):
 
         root.addWidget(seccion("Perdidas de presion por friccion, tramo por tramo"))
         self.tbl = tabla(0, len(COLS), COLS, col_ancha=0, ancho=100)
+        # Sin barra de scroll visible, pero se puede desplazar con la rueda.
+        self.tbl.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         # Anchos por columna para que los nombres completos se lean bien.
         for c, w in [(1, 80), (2, 82), (3, 80), (4, 90), (5, 120),
                      (6, 98), (7, 92), (8, 96), (9, 112)]:

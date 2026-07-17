@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (QLabel, QTableWidget, QTableWidgetItem,
                              QHeaderView, QAbstractItemView, QPushButton,
                              QDoubleSpinBox, QSpinBox, QFrame, QLineEdit,
-                             QAbstractSpinBox)
+                             QAbstractSpinBox, QComboBox)
 from PyQt6.QtGui import QColor, QBrush, QDoubleValidator, QIntValidator
 from PyQt6.QtCore import Qt, QLocale
 
@@ -99,6 +99,16 @@ def boton(txt, w=None):
     if w:
         b.setFixedWidth(w)
     return b
+
+
+def desplegable(items, w=150):
+    """Lista desplegable (QComboBox) con el estilo de la app."""
+    c = QComboBox()
+    c.addItems(items)
+    c.setStyleSheet(QSS_COMBO)
+    if w:
+        c.setFixedWidth(w)
+    return c
 
 
 def spin(vmin, vmax, val, dec=2, paso=1.0, w=90):

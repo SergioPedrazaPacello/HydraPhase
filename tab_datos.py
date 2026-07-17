@@ -6,10 +6,18 @@ from PyQt6.QtCore import Qt, pyqtSignal
 
 from estilo import (WHITE, GRAY_LBL, GRAY_RES, BORDER, TEXT, TEXT_RES,
                     TEXT_DIM, FONT_F, FS, QSS_TBL, QSS_GROUP,
-                    seccion, etiqueta, boton, spin, campo, leer_campo)
+                    seccion, etiqueta, boton, spin, campo, leer_campo,
+                    desplegable)
 from engine_hidraulica import (Fluido, TramoSarta, TramoHoyo, Pozo,
                                pozo_referencia, pozo_hcy2)
 import dialogos as dlg
+
+# Opciones de las listas desplegables (solo descriptivas / para el reporte;
+# no alteran el calculo por Ley de Potencia).
+TIPOS_FLUIDO = ["", "Base aceite (OBM)", "Base agua (WBM)", "Polimerico",
+                "Bentonitico extendido", "Tixotropico"]
+TIPOS_TREPANO = ["", "Triconico de insertos", "Triconico de dientes",
+                 "PDC", "Diamante impregnado", "Diamante natural"]
 
 # Los tres grupos superiores comparten el ancho completo de la ventana
 # (stretch 1:1:1) y usan una misma altura fija para quedar alineados.
@@ -140,9 +148,12 @@ class TabDatos(QWidget):
         v.setSpacing(6)
 
         top = QGridLayout()
+        top.setVerticalSpacing(8)
         top.setHorizontalSpacing(10)
         self.sp_rho = spin(0.0, 25.0, 0.0, 3, 0.1, W_CAMPO)
         self._fila(top, 0, "Densidad del lodo (ppg)", self.sp_rho)
+        self.cb_fluido = desplegable(TIPOS_FLUIDO, 150)
+        self._fila(top, 1, "Tipo de fluido", self.cb_fluido)
         v.addLayout(top)
         v.addStretch(1)
 
@@ -170,9 +181,12 @@ class TabDatos(QWidget):
         v.setSpacing(6)
 
         top = QGridLayout()
+        top.setVerticalSpacing(8)
         top.setHorizontalSpacing(10)
         self.sp_dbroca = spin(0.0, 30.0, 0.0, 3, 0.125, W_CAMPO)
         self._fila(top, 0, "Diametro de la broca (in)", self.sp_dbroca)
+        self.cb_trepano = desplegable(TIPOS_TREPANO, 150)
+        self._fila(top, 1, "Tipo de trepano", self.cb_trepano)
         v.addLayout(top)
         v.addStretch(1)
 
@@ -183,7 +197,7 @@ class TabDatos(QWidget):
             e = campo("", W_CAMPO, decimales=False, vmin=0, vmax=64)
             self.ed_boq.append(e)
             e.textChanged.connect(self._refrescar_params)
-            pares.append((f"Boquilla {i + 1}", e))
+            pares.append((f'Boquilla N\u00b0{i + 1} (1/32")', e))
         v.addLayout(self._rejilla_pares(pares, 2))   # dos columnas x tres filas
         v.addStretch(1)
         return g
@@ -220,7 +234,7 @@ class TabDatos(QWidget):
         for i in range(6):
             e = campo("", W_CAMPO, vmin=0, vmax=5000)
             self.ed_Q.append(e)
-            pares.append((f"Caudal {i + 1}", e))
+            pares.append((f"Caudal N\u00b0{i + 1} (gpm)", e))
         v.addLayout(self._rejilla_pares(pares, 2))   # dos columnas x tres filas
         v.addStretch(1)
         return g
@@ -298,12 +312,15 @@ class TabDatos(QWidget):
             s.setValue(0.0)
         for e in self.ed_boq + self.ed_Q:
             e.setText("")
+        self.cb_fluido.setCurrentIndex(0)
+        self.cb_trepano.setCurrentIndex(0)
         self.tb_sarta.limpiar()
         self.tb_hoyo.limpiar()
         self._refrescar_params()
 
     def _cargar_referencia(self):
         self.cargar_pozo(pozo_referencia(con_washout=False))
+        self.cb_fluido.setCurrentText("Base agua (WBM)")
         for i, q in enumerate([100, 200, 300, 400, 500]):
             self.ed_Q[i].setText(str(q))
         self.sp_Qop.setValue(400)
@@ -313,6 +330,8 @@ class TabDatos(QWidget):
 
     def _cargar_hcy2(self):
         self.cargar_pozo(pozo_hcy2())
+        self.cb_fluido.setCurrentText("Base aceite (OBM)")
+        self.cb_trepano.setCurrentText("PDC")
         for i, q in enumerate([390, 450, 500, 550, 600, 650]):
             self.ed_Q[i].setText(str(q))
         self.sp_Qop.setValue(550)

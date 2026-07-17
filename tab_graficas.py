@@ -119,6 +119,14 @@ class TabGraficas(QWidget):
         ax.title.set_fontsize(10)
         ax.title.set_color(TEXT_DIM)
 
+    def _anotar_valores(self, ax, xs, ys, fmt="{:,.0f}", color=None):
+        """Escribe el valor de la variable sobre cada marcador."""
+        col = color or TEXT_DIM
+        for x, y in zip(xs, ys):
+            ax.annotate(fmt.format(y), xy=(x, y), xytext=(0, 7),
+                        textcoords="offset points", ha="center", va="bottom",
+                        fontsize=7, color=col, fontfamily=FONT_F)
+
     def _dibujar(self):
         self.fig.clear()
         self.fig.patch.set_edgecolor(BORDER)
@@ -153,6 +161,7 @@ class TabGraficas(QWidget):
         if i == 0:
             ax.plot(Qs, S(bar, "P_bomba"), marker='o', ms=MS, lw=LW,
                     color=AZUL, label=d["etq"])
+            self._anotar_valores(ax, Qs, S(bar, "P_bomba"), "{:,.0f}")
             if alt:
                 ax.plot(Qa, S(d["barrido_alt"], "P_bomba"), marker='o', ms=MS,
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
@@ -163,6 +172,7 @@ class TabGraficas(QWidget):
         elif i == 1:
             ax.plot(Qs, S(bar, "dP_parasita"), marker='o', ms=MS, lw=LW,
                     color=AZUL, label=d["etq"])
+            self._anotar_valores(ax, Qs, S(bar, "dP_parasita"), "{:,.0f}")
             if alt:
                 ax.plot(Qa, S(d["barrido_alt"], "dP_parasita"), marker='o',
                         ms=MS, lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
@@ -205,6 +215,7 @@ class TabGraficas(QWidget):
         elif i == 4:
             ax.plot(Qs, S(bar, "dP_ann"), marker='o', ms=MS, lw=LW,
                     color=AZUL, label=d["etq"])
+            self._anotar_valores(ax, Qs, S(bar, "dP_ann"), "{:,.0f}")
             if alt:
                 ax.plot(Qa, S(d["barrido_alt"], "dP_ann"), marker='o', ms=MS,
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
@@ -215,6 +226,7 @@ class TabGraficas(QWidget):
         elif i == 5:
             ax.plot(Qs, S(bar, "ECD"), marker='o', ms=MS, lw=LW,
                     color=AZUL, label=d["etq"])
+            self._anotar_valores(ax, Qs, S(bar, "ECD"), "{:.2f}")
             if alt:
                 ax.plot(Qa, S(d["barrido_alt"], "ECD"), marker='o', ms=MS,
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
