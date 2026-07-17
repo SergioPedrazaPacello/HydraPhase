@@ -110,6 +110,8 @@ def spin(vmin, vmax, val, dec=2, paso=1.0, w=90):
     s.setDecimals(dec)
     s.setSingleStep(paso)
     s.setValue(val)
+    # Cuando el valor es el minimo (0) se muestra vacio en vez de "0".
+    s.setSpecialValueText(" ")
     s.setStyleSheet(QSS_CAMPO)
     s.setFixedWidth(w)
     s.setAlignment(Qt.AlignmentFlag.AlignRight)

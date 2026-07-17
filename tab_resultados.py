@@ -8,8 +8,10 @@ from estilo import (WHITE, GRAY_LBL, GRAY_RES, GRAY_HDR, BORDER, TEXT,
                     QSS_GROUP, cell, seccion, etiqueta, tabla)
 from engine_hidraulica import calcular, barrido_caudal
 
-COLS = ["Tramo", "Regimen", "D (in)", "L (ft)", "V (ft/s)", "\u03bce (cp)",
-        "NRe", "f", "Gradiente (psi/ft)", "\u0394P (psi)"]
+COLS = ["Tramo", "Regimen", "Diametro\n(in)", "Longitud\n(ft)",
+        "Velocidad\n(ft/s)", "Viscosidad\nefectiva (cp)",
+        "Numero de\nReynolds", "Factor de\nfriccion",
+        "Gradiente\n(psi/ft)", "Caida de\npresion (psi)"]
 
 
 class TabResultados(QWidget):
@@ -26,7 +28,12 @@ class TabResultados(QWidget):
         root.setSpacing(6)
 
         root.addWidget(seccion("Perdidas de presion por friccion, tramo por tramo"))
-        self.tbl = tabla(0, len(COLS), COLS, col_ancha=0, ancho=95)
+        self.tbl = tabla(0, len(COLS), COLS, col_ancha=0, ancho=100)
+        # Anchos por columna para que los nombres completos se lean bien.
+        for c, w in [(1, 80), (2, 82), (3, 80), (4, 90), (5, 120),
+                     (6, 98), (7, 92), (8, 96), (9, 112)]:
+            self.tbl.setColumnWidth(c, w)
+        self.tbl.horizontalHeader().setFixedHeight(38)
         root.addWidget(self.tbl, 1)
 
         fila = QHBoxLayout()
@@ -37,10 +44,14 @@ class TabResultados(QWidget):
         root.addLayout(fila)
 
         root.addWidget(seccion("Barrido de caudal"))
-        self.tbl_q = tabla(0, 8, ["Q (gpm)", "P bomba (psi)", "\u0394P broca (psi)",
-                                  "P parasita (psi)", "\u0394P anular (psi)",
-                                  "ECD (ppg)", "HHP bomba (hp)", "HSI (hp/in\u00b2)"])
-        self.tbl_q.setMaximumHeight(180)
+        self.tbl_q = tabla(0, 8, ["Caudal\n(gpm)", "Presion de\nbomba (psi)",
+                                  "Caida de presion\nen broca (psi)",
+                                  "Presion\nparasita (psi)",
+                                  "Caida de presion\nanular (psi)",
+                                  "ECD (ppg)", "HHP bomba\n(hp)",
+                                  "HSI (hp/in\u00b2)"])
+        self.tbl_q.horizontalHeader().setFixedHeight(38)
+        self.tbl_q.setMaximumHeight(200)
         root.addWidget(self.tbl_q)
 
     # ── Grupos de resumen ─────────────────────────────────────────
@@ -144,7 +155,7 @@ class TabResultados(QWidget):
         for c in range(len(COLS)):
             txt = ""
             if c == 0:
-                txt = "  Boquillas de la broca"
+                txt = "Boquillas de la broca"
             elif c == 9:
                 txt = f"{r.broca.dP:.2f}"
             al = (Qt.AlignmentFlag.AlignLeft if c == 0 else

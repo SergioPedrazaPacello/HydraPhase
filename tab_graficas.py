@@ -13,7 +13,14 @@ from estilo import (GRAY_RES, GRAY_LBL, BORDER, TEXT_DIM, FONT_F,
 from engine_hidraulica import calcular, barrido_caudal, perfil_utube
 
 # ── Tipografia y colores identicos a ThermoPhase ───────────────────────
-matplotlib.rcParams['font.family'] = ['Arial Narrow', 'Arial', 'sans-serif']
+# Se fuerza Arial Narrow en TODOS los elementos del grafico (titulo, ejes,
+# ticks, leyenda y anotaciones), no solo en el texto por defecto.
+matplotlib.rcParams['font.family']     = 'Arial Narrow'
+matplotlib.rcParams['font.sans-serif'] = ['Arial Narrow', 'Arial', 'sans-serif']
+matplotlib.rcParams['mathtext.fontset'] = 'custom'
+matplotlib.rcParams['mathtext.rm']      = 'Arial Narrow'
+matplotlib.rcParams['mathtext.it']      = 'Arial Narrow'
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 ROJO  = "#a83218"   # escenario / serie secundaria
 AZUL  = "#1a4fa8"   # escenario / serie principal
@@ -31,7 +38,7 @@ MS    = 3.5   # marcadores pequenos
 
 GRAFICAS = [
     "1. Presion de bomba vs Caudal",
-    "2. Presion parasita vs Caudal (log-log)",
+    "2. Presion parasita vs Caudal",
     "3. Presion circulante vs Longitud U-Tube",
     "4. Presion hidrostatica y total vs Longitud U-Tube",
     "5. Caida de presion anular vs Caudal",
@@ -144,45 +151,46 @@ class TabGraficas(QWidget):
             self.fig.tight_layout(); self.canvas.draw(); return
 
         if i == 0:
-            ax.plot(Qs, S(bar, "P_bomba"), marker='^', ms=MS, lw=LW,
+            ax.plot(Qs, S(bar, "P_bomba"), marker='o', ms=MS, lw=LW,
                     color=AZUL, label=d["etq"])
             if alt:
-                ax.plot(Qa, S(d["barrido_alt"], "P_bomba"), marker='^', ms=MS,
+                ax.plot(Qa, S(d["barrido_alt"], "P_bomba"), marker='o', ms=MS,
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             ax.set_xlabel("Caudal (gpm)")
             ax.set_ylabel("Presion de bomba (psi)")
             ax.set_title("Presion de bomba vs Caudal", loc="right")
 
         elif i == 1:
-            ax.loglog(Qs, S(bar, "dP_parasita"), marker='^', ms=MS, lw=LW,
-                      color=AZUL, label=d["etq"])
+            ax.plot(Qs, S(bar, "dP_parasita"), marker='o', ms=MS, lw=LW,
+                    color=AZUL, label=d["etq"])
             if alt:
-                ax.loglog(Qa, S(d["barrido_alt"], "dP_parasita"), marker='^',
-                          ms=MS, lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
+                ax.plot(Qa, S(d["barrido_alt"], "dP_parasita"), marker='o',
+                        ms=MS, lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             ax.set_xlabel("Caudal (gpm)")
             ax.set_ylabel("Presion parasita (psi)")
-            ax.set_title("Presion parasita vs Caudal  /  escala log-log", loc="right")
-            ax.grid(True, which="both", linestyle='--', alpha=0.4, color=GRAY_LBL)
+            ax.set_title("Presion parasita vs Caudal", loc="right")
 
         elif i in (2, 3):
             pf = perfil_utube(d["pozo"], d["res"])
             if i == 2:
-                ax.plot(pf["L"], pf["P_dyn"], lw=LW, color=AZUL, label=d["etq"])
+                ax.plot(pf["L"], pf["P_dyn"], lw=LW, marker='o', ms=MS,
+                        color=AZUL, label=d["etq"])
                 if alt:
                     pfa = perfil_utube(d["pozo_alt"], d["res_alt"])
-                    ax.plot(pfa["L"], pfa["P_dyn"], lw=LW, ls='--', color=ROJO,
-                            label=d["etq_alt"])
+                    ax.plot(pfa["L"], pfa["P_dyn"], lw=LW, marker='o', ms=MS,
+                            ls='--', color=ROJO, label=d["etq_alt"])
                 ax.set_ylabel("Presion circulante (psi)")
                 ax.set_title(f"Presion circulante vs Longitud U-Tube  /  "
                              f"Q = {d['Q_op']:,.0f} gpm", loc="right")
             else:
-                ax.plot(pf["L"], pf["P_hyd"], lw=LW, color=GRIS,
-                        label="Presion hidrostatica")
-                ax.plot(pf["L"], pf["P_tot"], lw=LW, color=AZUL,
-                        label="Hidrostatica + dinamica")
+                ax.plot(pf["L"], pf["P_hyd"], lw=LW, marker='o', ms=MS,
+                        color=GRIS, label="Presion hidrostatica")
+                ax.plot(pf["L"], pf["P_tot"], lw=LW, marker='o', ms=MS,
+                        color=AZUL, label="Hidrostatica + dinamica")
                 if alt:
                     pfa = perfil_utube(d["pozo_alt"], d["res_alt"])
-                    ax.plot(pfa["L"], pfa["P_tot"], lw=LW, ls='--', color=ROJO,
+                    ax.plot(pfa["L"], pfa["P_tot"], lw=LW, marker='o', ms=MS,
+                            ls='--', color=ROJO,
                             label=f"Hidrostatica + dinamica ({d['etq_alt']})")
                 ax.set_ylabel("Presion (psi)")
                 ax.set_title(f"Perfil de presion a lo largo del circuito  /  "
@@ -195,23 +203,23 @@ class TabGraficas(QWidget):
                         fontsize=8, color=VERDE, va="top")
 
         elif i == 4:
-            ax.plot(Qs, S(bar, "dP_ann"), marker='^', ms=MS, lw=LW,
+            ax.plot(Qs, S(bar, "dP_ann"), marker='o', ms=MS, lw=LW,
                     color=AZUL, label=d["etq"])
             if alt:
-                ax.plot(Qa, S(d["barrido_alt"], "dP_ann"), marker='^', ms=MS,
+                ax.plot(Qa, S(d["barrido_alt"], "dP_ann"), marker='o', ms=MS,
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             ax.set_xlabel("Caudal (gpm)")
             ax.set_ylabel("Caida de presion anular total (psi)")
             ax.set_title("Caida de presion anular vs Caudal", loc="right")
 
         elif i == 5:
-            ax.plot(Qs, S(bar, "ECD"), marker='^', ms=MS, lw=LW,
+            ax.plot(Qs, S(bar, "ECD"), marker='o', ms=MS, lw=LW,
                     color=AZUL, label=d["etq"])
             if alt:
-                ax.plot(Qa, S(d["barrido_alt"], "ECD"), marker='^', ms=MS,
+                ax.plot(Qa, S(d["barrido_alt"], "ECD"), marker='o', ms=MS,
                         lw=LW, ls='--', color=ROJO, label=d["etq_alt"])
             rho = d["pozo"].fluido.rho
-            ax.axhline(rho, color=GRIS, ls=":", lw=0.9)
+            ax.axhline(rho, color=GRIS, ls="-", lw=LW)
             ax.annotate(f"Densidad estatica = {rho:.2f} ppg",
                         xy=(Qs[0], rho), xytext=(4, 4),
                         textcoords="offset points", fontsize=8, color=TEXT_DIM)

@@ -11,13 +11,12 @@ from engine_hidraulica import (Fluido, TramoSarta, TramoHoyo, Pozo,
                                pozo_referencia, pozo_hcy2)
 import dialogos as dlg
 
-# Tamano fijo de los tres grupos superiores.
-# El ancho de cada uno se ajusta a su contenido real (etiqueta mas larga
-# + campo), sin espacio sobrante. Los campos van alineados a la derecha.
-W_FLUIDO, W_BROCA, W_OPER = 232, 262, 278
-ALTO_GRUPO = 200
-W_CAMPO    = 78     # ancho de los campos numericos
-W_CHICO    = 56     # ancho de boquillas y caudales
+# Los tres grupos superiores comparten el ancho completo de la ventana
+# (stretch 1:1:1) y usan una misma altura fija para quedar alineados.
+# El contenido se reparte para llenar cada cuadro y no dejar huecos.
+ALTO_GRUPO = 244
+W_CAMPO    = 84     # ancho unico de TODOS los campos de ingreso de datos
+ETQ_ANCHO  = 300    # ancho de referencia de las etiquetas largas
 
 
 class _TablaEditable(QTableWidget):
@@ -79,10 +78,9 @@ class TabDatos(QWidget):
 
         fila = QHBoxLayout()
         fila.setSpacing(8)
-        fila.addWidget(self._grupo_fluido())
-        fila.addWidget(self._grupo_broca())
-        fila.addWidget(self._grupo_operacion())
-        fila.addStretch(1)          # el espacio sobrante va a la derecha
+        fila.addWidget(self._grupo_fluido(), 1)
+        fila.addWidget(self._grupo_broca(), 1)
+        fila.addWidget(self._grupo_operacion(), 1)
         root.addLayout(fila)
 
         fila2 = QHBoxLayout()
@@ -112,128 +110,118 @@ class TabDatos(QWidget):
         root.addLayout(barra)
 
     # ── Grupos ────────────────────────────────────────────────────
+    # Helpers de disposicion: reparten el contenido para llenar el cuadro.
+    def _fila(self, grid, row, texto, widget):
+        """Una fila: etiqueta que se expande + campo alineado a la derecha."""
+        grid.addWidget(etiqueta(texto), row, 0)
+        grid.addWidget(widget, row, 1, Qt.AlignmentFlag.AlignRight)
+        grid.setColumnStretch(0, 1)
+
+    def _rejilla_pares(self, pares, ncols):
+        """Rejilla de pares (etiqueta, campo) repartidos en `ncols` columnas
+        iguales, para que ocupen todo el ancho sin dejar huecos grandes."""
+        grid = QGridLayout()
+        grid.setVerticalSpacing(8)
+        grid.setHorizontalSpacing(10)
+        for i, (t, w) in enumerate(pares):
+            r, c = divmod(i, ncols)
+            grid.addWidget(etiqueta(t), r, c * 2)
+            grid.addWidget(w, r, c * 2 + 1, Qt.AlignmentFlag.AlignRight)
+        for c in range(ncols):
+            grid.setColumnStretch(c * 2, 1)     # cada columna de etiqueta se expande
+        return grid
+
     def _grupo_fluido(self):
         g = QGroupBox("Fluido de perforacion")
         g.setStyleSheet(QSS_GROUP)
-        g.setFixedSize(W_FLUIDO, ALTO_GRUPO)
+        g.setFixedHeight(ALTO_GRUPO)
         v = QVBoxLayout(g)
-        v.setContentsMargins(8, 6, 8, 6)
-        v.setSpacing(4)
+        v.setContentsMargins(10, 8, 10, 8)
+        v.setSpacing(6)
 
         top = QGridLayout()
-        top.setVerticalSpacing(4)
-        top.setHorizontalSpacing(6)
+        top.setHorizontalSpacing(10)
         self.sp_rho = spin(0.0, 25.0, 0.0, 3, 0.1, W_CAMPO)
-        top.addWidget(etiqueta("Densidad del lodo (ppg)"), 0, 0)
-        top.addWidget(self.sp_rho, 0, 1)
-        top.setColumnStretch(0, 1)          # empuja el campo a la derecha
+        self._fila(top, 0, "Densidad del lodo (ppg)", self.sp_rho)
         v.addLayout(top)
+        v.addStretch(1)
 
-        v.addWidget(seccion("Lecturas de viscosimetro Fann"))
-
-        gf = QGridLayout()
-        gf.setVerticalSpacing(4)
-        gf.setHorizontalSpacing(6)
+        v.addWidget(seccion("Lecturas del viscosimetro Fann"))
         self.sp_R600 = spin(0, 400, 0, 1, 1, W_CAMPO)
         self.sp_R300 = spin(0, 400, 0, 1, 1, W_CAMPO)
         self.sp_R100 = spin(0, 400, 0, 1, 1, W_CAMPO)
         self.sp_R3   = spin(0, 400, 0, 1, 1, W_CAMPO)
-        for i, (t, s) in enumerate([("R600 (600 rpm)", self.sp_R600),
-                                    ("R300 (300 rpm)", self.sp_R300),
-                                    ("R100 (100 rpm)", self.sp_R100),
-                                    ("R3   (3 rpm)",   self.sp_R3)]):
-            gf.addWidget(etiqueta(t), i, 0)
-            gf.addWidget(s, i, 1)
+        pares = [("Lectura del viscosimetro a 600 rpm (R600)", self.sp_R600),
+                 ("Lectura del viscosimetro a 300 rpm (R300)", self.sp_R300),
+                 ("Lectura del viscosimetro a 100 rpm (R100)", self.sp_R100),
+                 ("Lectura del viscosimetro a 3 rpm (R3)",     self.sp_R3)]
+        for _, s in pares:
             s.valueChanged.connect(self._refrescar_params)
-        gf.setColumnStretch(0, 1)
-        v.addLayout(gf)
+        v.addLayout(self._rejilla_pares(pares, 1))   # una columna (etiquetas largas)
         v.addStretch(1)
         return g
 
     def _grupo_broca(self):
         g = QGroupBox("Broca / Trepano")
         g.setStyleSheet(QSS_GROUP)
-        g.setFixedSize(W_BROCA, ALTO_GRUPO)
+        g.setFixedHeight(ALTO_GRUPO)
         v = QVBoxLayout(g)
-        v.setContentsMargins(8, 6, 8, 6)
-        v.setSpacing(4)
+        v.setContentsMargins(10, 8, 10, 8)
+        v.setSpacing(6)
 
         top = QGridLayout()
-        top.setVerticalSpacing(4)
-        top.setHorizontalSpacing(6)
+        top.setHorizontalSpacing(10)
         self.sp_dbroca = spin(0.0, 30.0, 0.0, 3, 0.125, W_CAMPO)
-        top.addWidget(etiqueta("Diametro de broca (in)"), 0, 0)
-        top.addWidget(self.sp_dbroca, 0, 1)
-        top.setColumnStretch(0, 1)
+        self._fila(top, 0, "Diametro de la broca (in)", self.sp_dbroca)
         v.addLayout(top)
+        v.addStretch(1)
 
-        v.addWidget(seccion("Boquillas  (en 1/32 de pulgada)"))
-
-        gb = QGridLayout()
-        gb.setVerticalSpacing(4)
-        gb.setHorizontalSpacing(6)
+        v.addWidget(seccion("Boquillas de la broca  (tamano en 1/32 de pulgada)"))
         self.ed_boq = []
+        pares = []
         for i in range(6):
-            e = campo("", W_CHICO, decimales=False, vmin=0, vmax=64)
+            e = campo("", W_CAMPO, decimales=False, vmin=0, vmax=64)
             self.ed_boq.append(e)
             e.textChanged.connect(self._refrescar_params)
-            r, c = i // 2, i % 2
-            gb.addWidget(etiqueta(f"Boquilla N{i+1}"), r, c * 2)
-            gb.addWidget(e, r, c * 2 + 1)
-        gb.setColumnStretch(0, 1)
-        gb.setColumnStretch(2, 1)
-        v.addLayout(gb)
+            pares.append((f"Boquilla {i + 1}", e))
+        v.addLayout(self._rejilla_pares(pares, 2))   # dos columnas x tres filas
         v.addStretch(1)
         return g
 
     def _grupo_operacion(self):
         g = QGroupBox("Operacion")
         g.setStyleSheet(QSS_GROUP)
-        g.setFixedSize(W_OPER, ALTO_GRUPO)
+        g.setFixedHeight(ALTO_GRUPO)
         v = QVBoxLayout(g)
-        v.setContentsMargins(8, 6, 8, 6)
-        v.setSpacing(4)
+        v.setContentsMargins(10, 8, 10, 8)
+        v.setSpacing(6)
 
-        self.sp_psup = spin(0, 1000, 0, 1, 5, W_CAMPO)
-        self.sp_pmot = spin(0, 3000, 0, 1, 10, W_CAMPO)
+        self.sp_psup = spin(0, 2000, 0, 1, 5, W_CAMPO)
+        self.sp_pmot = spin(0, 5000, 0, 1, 10, W_CAMPO)
         self.sp_tvd  = spin(0, 40000, 0, 0, 100, W_CAMPO)
+        self.sp_Qop  = spin(0, 5000, 0, 0, 25, W_CAMPO)
 
         top = QGridLayout()
-        top.setVerticalSpacing(4)
-        top.setHorizontalSpacing(6)
-        for i, (t, s) in enumerate([
-                ("Perdida en superficie (psi)", self.sp_psup),
-                ("Diferencial motor / MWD (psi)", self.sp_pmot),
-                ("TVD, 0 = usar MD (ft)", self.sp_tvd)]):
-            top.addWidget(etiqueta(t), i, 0)
-            top.addWidget(s, i, 1)
-        top.setColumnStretch(0, 1)
+        top.setVerticalSpacing(8)
+        top.setHorizontalSpacing(10)
+        escalares = [
+            ("Perdida de presion en superficie (psi)",       self.sp_psup),
+            ("Diferencial de motor de fondo / MWD (psi)",    self.sp_pmot),
+            ("Profundidad vertical TVD (ft), vacio usa MD",  self.sp_tvd),
+            ("Caudal de operacion (gpm)",                    self.sp_Qop)]
+        for i, (t, s) in enumerate(escalares):
+            self._fila(top, i, t, s)
         v.addLayout(top)
+        v.addStretch(1)
 
-        v.addWidget(seccion("Caudales a evaluar  (gpm)"))
-
-        gq = QGridLayout()
-        gq.setVerticalSpacing(4)
-        gq.setHorizontalSpacing(6)
+        v.addWidget(seccion("Caudales a evaluar en el barrido  (gpm)"))
         self.ed_Q = []
+        pares = []
         for i in range(6):
-            e = campo("", W_CHICO, vmin=0, vmax=5000)
+            e = campo("", W_CAMPO, vmin=0, vmax=5000)
             self.ed_Q.append(e)
-            r, c = i // 2, i % 2
-            gq.addWidget(etiqueta(f"Caudal N{i+1}"), r, c * 2)
-            gq.addWidget(e, r, c * 2 + 1)
-        gq.setColumnStretch(0, 1)
-        gq.setColumnStretch(2, 1)
-        v.addLayout(gq)
-
-        bot = QGridLayout()
-        bot.setVerticalSpacing(4)
-        bot.setHorizontalSpacing(6)
-        self.sp_Qop = spin(0, 5000, 0, 0, 25, W_CAMPO)
-        bot.addWidget(etiqueta("Caudal de operacion (gpm)"), 0, 0)
-        bot.addWidget(self.sp_Qop, 0, 1)
-        bot.setColumnStretch(0, 1)
-        v.addLayout(bot)
+            pares.append((f"Caudal {i + 1}", e))
+        v.addLayout(self._rejilla_pares(pares, 2))   # dos columnas x tres filas
         v.addStretch(1)
         return g
 
